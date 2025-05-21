@@ -6,7 +6,7 @@ public class BuildDataSO : ScriptableObject
 {
     public BuildID buildID;
     public string objectName;
-    public GameObject prefab;
+    public Building prefab;
     public Vector2Int gridSize = Vector2Int.one; 
     public Sprite icon;
 }

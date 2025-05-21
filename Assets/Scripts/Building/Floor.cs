@@ -14,6 +14,29 @@ public enum WallDirection
 
 public class Floor : Building
 {
+    [SerializeField] private WallDirection wallDirection;
     
-    //could contain up to 4 wall and 1 object, 
+    // Dictionary to store walls in each direction
+    private Wall[] attachedWalls = new Wall[4];
+
+    public WallDirection WallDirection => wallDirection;
+
+    public void SetWallWithDirection(WallDirection direction, Wall w)
+    {
+        wallDirection = direction;
+        attachedWalls[(int)direction] = w;
+    }
+    
+
+    private void OnDestroy()
+    {
+        // Clean up walls when floor is destroyed
+        for (int i = 0; i < attachedWalls.Length; i++)
+        {
+            if (attachedWalls[i] != null)
+            {
+                Destroy(attachedWalls[i].gameObject);
+            }
+        }
+    }
 }

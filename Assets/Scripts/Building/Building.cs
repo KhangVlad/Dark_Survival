@@ -5,9 +5,6 @@
     {
         public BuildID buildID;
         public BuildDataSO data;
-        public void Initialize(BuildDataSO so)
-        {
-            this.data = so;
-        }
+       
 
     }

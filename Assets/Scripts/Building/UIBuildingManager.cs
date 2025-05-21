@@ -37,6 +37,7 @@ public class UIBuildingManager : MonoBehaviour
             slot.InitializeData(dataSO);
             slot.OnClick += (o => { 
                 GridBuildingSystem.Instance.StartPlacingBuilding(o);
+                ActiveCanvas(false);
             });
         }
     }

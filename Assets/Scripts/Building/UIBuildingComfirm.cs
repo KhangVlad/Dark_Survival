@@ -32,6 +32,7 @@ public class UIBuildingComfirm : MonoBehaviour //world space ui show option buil
         Debug.Log("cancel");
         // Cancel the building placement
         GridBuildingSystem.Instance.CancelBuilding();
+        CanvasController.Instance.ActiveBuildingCanvas(false);
     }
     
     public void UpdatePosition(Vector3 targetPosition)
