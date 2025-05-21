@@ -36,7 +36,7 @@ public class UIBuildingManager : MonoBehaviour
                 GameManager.Instance.GetBuildingDataByID(GameManager.Instance.BuildingDataSO[i].buildID);
             slot.InitializeData(dataSO);
             slot.OnClick += (o => { 
-                GridBuildingSystem.Instance.StartPlacingBuilding(o);
+                GridSystem.Instance.StartPlacingBuilding(o);
                 ActiveCanvas(false);
             });
         }

@@ -1,10 +1,10 @@
-
 using UnityEngine;
 
-public class GridBuildingSystem : MonoBehaviour
+public class GridSystem : MonoBehaviour
 {
     #region Singleton
-    public static GridBuildingSystem Instance { get; private set; }
+
+    public static GridSystem Instance { get; private set; }
 
     private void Awake()
     {
@@ -17,41 +17,40 @@ public class GridBuildingSystem : MonoBehaviour
             Destroy(this.gameObject);
         }
     }
+
     #endregion
 
     #region Properties and Fields
-    [Header("Grid Settings")] 
-    public int gridWidth = 50;
+
+    [Header("Grid Settings")] public int gridWidth = 50;
     public int gridHeight = 50;
     public float cellSize = 1f;
     public Vector3 gridOrigin = Vector3.zero;
 
-    [Header("Gizmos")] 
-    public bool showGrid = true;
+    [Header("Gizmos")] public bool showGrid = true;
     public Color gridColor = Color.white;
     public Color occupiedCellColor = Color.red;
-
-    [Header("Building")] 
-    public BuildDataSO currentSelectedObject;
+    public Color unoccupiedCellColor = Color.green;
+    [Header("Building")] public BuildDataSO currentSelectedObject;
     public LayerMask groundLayer = 1;
+    public LayerMask buildingLayerMask = 1;
     public Building currentBuildingPlaced;
 
-    [Header("Preview")] 
-    public Color previewColor = Color.yellow;
     private Building previewBuilding;
     private Vector2Int currentPreviewPosition;
     private bool isPlacing = false;
     private bool isDragging = false;
     public WallDirection previousDirection;
-
-
-    private Building[,] gridData;
-    private Building[,] spawnedObjects;
+    private bool[,] gridData;
+    //cached floor data
+    public Floor[] floorData;
     private UIBuildingComfirm uiBuildingConfirm;
     private Camera playerCamera;
+
     #endregion
 
     #region Initialization
+
     void Start()
     {
         playerCamera = Camera.main;
@@ -61,21 +60,19 @@ public class GridBuildingSystem : MonoBehaviour
 
     void InitializeGrid()
     {
-        gridData = new Building[gridWidth, gridHeight];
-        spawnedObjects = new Building[gridWidth, gridHeight];
+        gridData = new bool[gridWidth, gridHeight];
+        floorData = new Floor[gridWidth * gridHeight];
     }
+
     #endregion
 
     #region Main Update Loop
+
     void Update()
     {
         if (isPlacing && previewBuilding != null)
         {
             HandlePlacementMode();
-        }
-        else
-        {
-            HandleInput();
         }
 
         if (Input.GetKeyDown(KeyCode.Escape) && isPlacing)
@@ -83,9 +80,26 @@ public class GridBuildingSystem : MonoBehaviour
             CancelBuilding();
         }
 
-        if (Input.GetKeyDown(KeyCode.C))
+        if (Input.GetMouseButtonDown(0))
         {
-            ClearGrid();
+            //world pos to grid pos check is have floor
+            Vector3 mousePos = Input.mousePosition;
+            Ray ray = playerCamera.ScreenPointToRay(mousePos);
+            if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, groundLayer))
+            {
+               //if hit buildingLayerMask 
+                if (Physics.Raycast(ray, out RaycastHit hitBuilding, Mathf.Infinity, buildingLayerMask))
+                {
+                    Vector2Int gridPosition = WorldToGridPosition(hitBuilding.point);
+                    Building building = hitBuilding.collider.GetComponent<Building>();
+                    if (building is Floor)
+                    {
+                        //debug this floor is on which grid
+                        Debug.Log($"Floor found at {gridPosition}");
+                        
+                    }
+                }
+            }
         }
     }
 
@@ -113,37 +127,10 @@ public class GridBuildingSystem : MonoBehaviour
         }
     }
 
-    private void HandleInput()
-    {
-        if (currentSelectedObject == null) return;
-
-        Ray ray = playerCamera.ScreenPointToRay(Input.mousePosition);
-
-        if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, groundLayer))
-        {
-            Vector2Int gridPosition = WorldToGridPosition(hit.point);
-
-            // Optional: Add right-click to remove buildings
-            if (Input.GetMouseButtonDown(1))
-            {
-                TryRemoveObject(gridPosition);
-            }
-        }
-    }
-
-    private void ClearGrid()
-    {
-        for (int x = 0; x < gridWidth; x++)
-        {
-            for (int z = 0; z < gridHeight; z++)
-            {
-                TryRemoveObject(new Vector2Int(x, z));
-            }
-        }
-    }
     #endregion
 
     #region Building Placement
+
     /// <summary>
     /// Begins the building placement process for a selected building type
     /// </summary>
@@ -172,7 +159,7 @@ public class GridBuildingSystem : MonoBehaviour
         {
             // Try to build at current preview position
             bool success = TryBuildObject(currentPreviewPosition);
-            Destroy(previewBuilding);
+            Destroy(previewBuilding.gameObject);
 
             if (success)
             {
@@ -193,13 +180,14 @@ public class GridBuildingSystem : MonoBehaviour
                 }
                 else
                 {
+                    Debug.Log("No valid adjacent position found for the next building.");
                     // If no valid adjacent position, cancel placing
                     CancelBuilding();
                 }
             }
             else
             {
-                Debug.Log("Failed to place building.");
+                CancelBuilding();
             }
         }
     }
@@ -224,83 +212,91 @@ public class GridBuildingSystem : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Attempts to build an object at the specified grid position
-    /// </summary>
+    
     public bool TryBuildObject(Vector2Int gridPosition)
     {
         if (!IsValidGridPosition(gridPosition)) return false;
-        for (int x = 0; x < currentSelectedObject.gridSize.x; x++)
+        switch (currentSelectedObject.buildID)
         {
-            for (int y = 0; y < currentSelectedObject.gridSize.y; y++)
+            case BuildID.Floor:
+                if (!CanPlaceObject(gridPosition, currentSelectedObject.gridSize)) return false;
+                MarkGridCells(gridPosition, currentSelectedObject.gridSize, true);
+                PlaceBuilding(gridPosition);
+                break;
+            case BuildID.Wall:
+                WallDirection wallDirection = CalculateWallDirection(previewBuilding.transform.position,
+                    GetGridCenterPosition(gridPosition));
+                PlaceWall(gridPosition, wallDirection);
+                break;
+
+            default:
+                PlaceBuilding(gridPosition);
+                break;
+        }
+
+        return true;
+    }
+
+    private bool CanPlaceObject(Vector2Int gridPosition, Vector2Int gridSize)
+    {
+        for (int x = 0; x < gridSize.x; x++)
+        {
+            for (int y = 0; y < gridSize.y; y++)
             {
                 Vector2Int checkPos = gridPosition + new Vector2Int(x, y);
-                if (!IsValidGridPosition(checkPos))
+                if (!IsValidGridPosition(checkPos) || gridData[checkPos.x, checkPos.y])
                 {
-                    Debug.Log("Cannot build here - out of bounds");
                     return false;
                 }
+            }
+        }
 
+        return true;
+    }
+
+    private void MarkGridCells(Vector2Int gridPosition, Vector2Int gridSize, bool isOccupied)
+    {
+        for (int x = 0; x < gridSize.x; x++)
+        {
+            for (int y = 0; y < gridSize.y; y++)
+            {
+                Vector2Int cellPos = gridPosition + new Vector2Int(x, y);
+                gridData[cellPos.x, cellPos.y] = isOccupied;
                
             }
         }
+    }
+    
+    private Floor GetFloorAt(Vector2Int gridPosition)   
+    {
+        return floorData[gridPosition.x + gridPosition.y * gridWidth];
+    }
+  
 
-        // Build the object
+    private void PlaceBuilding(Vector2Int gridPosition)
+    {
         Vector3 worldPosition = GridToWorldPosition(gridPosition);
         Building newObject = Instantiate(currentSelectedObject.prefab, worldPosition, Quaternion.identity);
+        if (newObject is Floor)
+        {
+            Debug.Log($"Placing floor at {gridPosition} aaaaa");
+            floorData[currentSelectedObject.gridSize.x + currentSelectedObject.gridSize.y * gridWidth] = newObject as Floor;
+        }
 
         currentBuildingPlaced = newObject;
-        for (int x = 0; x < currentSelectedObject.gridSize.x; x++)
-        {
-            for (int y = 0; y < currentSelectedObject.gridSize.y; y++)
-            {
-                Vector2Int cellPos = gridPosition + new Vector2Int(x, y);
-                gridData[cellPos.x, cellPos.y] = newObject;
-                spawnedObjects[cellPos.x, cellPos.y] = newObject.GetComponent<Building>();
-            }
-        }
-
-        Debug.Log($"Successfully built {currentSelectedObject.buildID} at {gridPosition}");
-        return true;
     }
 
-    /// <summary>
-    /// Attempts to remove an object at the specified grid position
-    /// </summary>
-    public bool TryRemoveObject(Vector2Int gridPosition)
+    private void PlaceWall(Vector2Int gridPosition, WallDirection wallDirection)
     {
-        if (!IsValidGridPosition(gridPosition)) return false;
-
-        Building buildingToRemove = gridData[gridPosition.x, gridPosition.y];
-        if (buildingToRemove == null) return false;
-
-        Building objectToDestroy = spawnedObjects[gridPosition.x, gridPosition.y];
-
-        // Find all cells occupied by this building and clear them
-        for (int x = 0; x < gridWidth; x++)
-        {
-            for (int y = 0; y < gridHeight; y++)
-            {
-                if (spawnedObjects[x, y] == objectToDestroy)
-                {
-                    gridData[x, y] = null;
-                    spawnedObjects[x, y] = null;
-                }
-            }
-        }
-
-        // Destroy the game object
-        if (objectToDestroy != null)
-        {
-            Destroy(objectToDestroy);
-        }
-
-        Debug.Log($"Removed building at {gridPosition}");
-        return true;
+        Vector3 wallPosition = GridToWorldPosition(gridPosition);
+        Building wallObject = Instantiate(currentSelectedObject.prefab, wallPosition, Quaternion.identity);
+        UpdatePreviewPositionAndRotation(wallDirection, wallObject);
     }
+
     #endregion
 
     #region Preview Management
+
     private void CreatePreview(Vector2Int gridPosition)
     {
         if (previewBuilding != null)
@@ -310,10 +306,6 @@ public class GridBuildingSystem : MonoBehaviour
 
         currentPreviewPosition = gridPosition;
         previewBuilding = Instantiate(currentSelectedObject.prefab);
-
-        // Make the preview semi-transparent
-        SetPreviewTransparency(previewBuilding, 0.5f);
-
         UpdatePreviewTransform();
     }
 
@@ -332,8 +324,8 @@ public class GridBuildingSystem : MonoBehaviour
         if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, groundLayer))
         {
             Vector2Int gridPosition = WorldToGridPosition(hit.point);
-            Floor f = GetFloorAt(gridPosition);
-            Debug.Log($"Grid Position: {gridPosition}");
+            // Floor f = GetFloorAt(gridPosition);
+            // Debug.Log($"Grid Position: {gridPosition}");
             if (currentSelectedObject.buildID == BuildID.Floor)
             {
                 if (gridPosition != currentPreviewPosition)
@@ -350,22 +342,36 @@ public class GridBuildingSystem : MonoBehaviour
             }
             else if (currentSelectedObject.buildID == BuildID.Wall)
             {
-             
-                if (f != null)
+                WallDirection wallDirection = CalculateWallDirection(hit.point, GetGridCenterPosition(gridPosition));
+                if (previousDirection == wallDirection) return;
+                previousDirection = wallDirection;
+                currentPreviewPosition = gridPosition;
+                UpdatePreviewPositionAndRotation(wallDirection, previewBuilding);
+                // if (f != null)
+                // {
+                //     Debug.Log($"Floor found at {gridPosition}");
+                //    
+                //     
+                // }
+            }
+            else
+            {
+                if (gridPosition != currentPreviewPosition)
                 {
-                    Debug.Log($"Floor found at {gridPosition}");
-                    WallDirection wallDirection = CalculateWallDirection(hit.point,  GetGridCenterPosition(gridPosition));
-                    if (previousDirection == wallDirection)return;
-                    previousDirection = wallDirection;
                     currentPreviewPosition = gridPosition;
-                    UpdatePreviewPositionAndRotation(wallDirection, previewBuilding);
-                    
+                    UpdatePreviewTransform();
+
+                    // Update confirmation UI position if it's active
+                    if (uiBuildingConfirm != null && uiBuildingConfirm.gameObject.activeSelf)
+                    {
+                        uiBuildingConfirm.UpdatePosition(GridToWorldPosition(gridPosition));
+                    }
                 }
             }
         }
     }
 
-    private void UpdatePreviewPositionAndRotation(WallDirection dir,Building preview )
+    private void UpdatePreviewPositionAndRotation(WallDirection dir, Building preview)
     {
         float rotation = 0f;
         Vector3 offset = Vector3.zero;
@@ -373,55 +379,30 @@ public class GridBuildingSystem : MonoBehaviour
         {
             case WallDirection.North:
                 rotation = 90f;
-                offset = new Vector3(cellSize/2, 0, cellSize);
+                offset = new Vector3(cellSize / 2, 0, cellSize);
                 break;
             case WallDirection.East:
                 rotation = 0;
-                offset = new Vector3(cellSize, 0, cellSize/2);
+                offset = new Vector3(cellSize, 0, cellSize / 2);
                 break;
             case WallDirection.South:
                 rotation = 90f;
-                    offset  =new Vector3(cellSize/2, 0, 0);
+                offset = new Vector3(cellSize / 2, 0, 0);
                 break;
             case WallDirection.West:
                 rotation = 0;
-                offset = new Vector3(0, 0, cellSize/2);
+                offset = new Vector3(0, 0, cellSize / 2);
                 break;
         }
+
         preview.transform.position = GridToWorldPosition(currentPreviewPosition) + offset;
         preview.transform.rotation = Quaternion.Euler(0, rotation, 0);
-            
     }
 
-  
-    
-    
-    private void SetPreviewTransparency(Building obj, float alpha)
-    {
-        Renderer[] renderers = obj.GetComponentsInChildren<Renderer>();
-        foreach (Renderer renderer in renderers)
-        {
-            Material[] materials = renderer.materials;
-            foreach (Material material in materials)
-            {
-                Color color = material.color;
-                material.color = new Color(color.r, color.g, color.b, alpha);
-
-                // Enable transparency
-                material.SetFloat("_Mode", 3); // Transparent mode
-                material.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
-                material.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
-                material.SetInt("_ZWrite", 0);
-                material.DisableKeyword("_ALPHATEST_ON");
-                material.EnableKeyword("_ALPHABLEND_ON");
-                material.DisableKeyword("_ALPHAPREMULTIPLY_ON");
-                material.renderQueue = 3000;
-            }
-        }
-    }
     #endregion
 
     #region Utility Methods
+
     /// <summary>
     /// Returns the closest grid position to the player character
     /// </summary>
@@ -458,9 +439,10 @@ public class GridBuildingSystem : MonoBehaviour
     /// </summary>
     Vector3 GridToWorldPosition(Vector2Int gridPosition)
     {
+        Vector2Int size = currentSelectedObject.gridSize;
         return gridOrigin + new Vector3(gridPosition.x * cellSize, 0, gridPosition.y * cellSize);
     }
-    
+
     /// <summary>
     /// Gets the center position of a grid cell
     /// </summary>
@@ -476,17 +458,10 @@ public class GridBuildingSystem : MonoBehaviour
 
         float angle = Mathf.Atan2(directionVector.y, directionVector.x) * Mathf.Rad2Deg;
         if (angle < 0) angle += 360f;
-        if (angle >= 45f && angle < 135f) return WallDirection.North;  
-        if (angle >= 135f && angle < 225f) return WallDirection.West; 
-        if (angle >= 225f && angle < 315f) return WallDirection.South;  
+        if (angle >= 45f && angle < 135f) return WallDirection.North;
+        if (angle >= 135f && angle < 225f) return WallDirection.West;
+        if (angle >= 225f && angle < 315f) return WallDirection.South;
         return WallDirection.East;
-    }
-
-    private Floor GetFloorAt(Vector2Int gridPosition)
-    {
-        if (!IsValidGridPosition(gridPosition)) return null;
-        Building building = gridData[gridPosition.x, gridPosition.y];
-        return building as Floor;
     }
 
     private bool IsValidGridPosition(Vector2Int gridPosition)
@@ -494,8 +469,6 @@ public class GridBuildingSystem : MonoBehaviour
         return gridPosition.x >= 0 && gridPosition.x < gridWidth &&
                gridPosition.y >= 0 && gridPosition.y < gridHeight;
     }
-
-  
 
 
     private Vector2Int FindClosestFloorPosition(Vector2Int startPosition)
@@ -548,21 +521,18 @@ public class GridBuildingSystem : MonoBehaviour
         return null;
     }
 
+
     private bool IsValidBuildingPosition(Vector2Int position)
     {
-        if (currentSelectedObject == null) return false;
-
-        // Check if all cells needed for the building are valid
         for (int x = 0; x < currentSelectedObject.gridSize.x; x++)
         {
             for (int y = 0; y < currentSelectedObject.gridSize.y; y++)
             {
                 Vector2Int checkPos = position + new Vector2Int(x, y);
-
-                if (!IsValidGridPosition(checkPos)) return false;
-
-                Building existingBuilding = gridData[checkPos.x, checkPos.y];
-               
+                if (!IsValidGridPosition(checkPos) || gridData[checkPos.x, checkPos.y])
+                {
+                    return false;
+                }
             }
         }
 
@@ -581,9 +551,11 @@ public class GridBuildingSystem : MonoBehaviour
             array[j] = temp;
         }
     }
+
     #endregion
 
     #region GUI and Gizmos
+
     void OnGUI()
     {
         // Create a button in the top right corner to toggle grid visibility
@@ -609,7 +581,7 @@ public class GridBuildingSystem : MonoBehaviour
             Vector3 endPos = gridOrigin + new Vector3(x * cellSize, 0.01f, gridHeight * cellSize);
             Gizmos.DrawLine(startPos, endPos);
         }
-
+        
         // Draw vertical lines
         for (int z = 0; z <= gridHeight; z++)
         {
@@ -618,23 +590,30 @@ public class GridBuildingSystem : MonoBehaviour
             Gizmos.DrawLine(startPos, endPos);
         }
 
+        
         // Optionally highlight occupied cells
         if (Application.isPlaying && gridData != null)
         {
-            Gizmos.color = occupiedCellColor;
             for (int x = 0; x < gridWidth; x++)
             {
                 for (int z = 0; z < gridHeight; z++)
                 {
-                    if (gridData[x, z] != null)
+                    Vector3 cellCenter = gridOrigin + new Vector3((x + 0.5f) * cellSize, 0.02f, (z + 0.5f) * cellSize);
+
+                    if (gridData[x, z])
                     {
-                        Vector3 cellCenter =
-                            gridOrigin + new Vector3((x + 0.5f) * cellSize, 0.02f, (z + 0.5f) * cellSize);
+                        Gizmos.color = occupiedCellColor; // Color for occupied cells
+                        Gizmos.DrawCube(cellCenter, new Vector3(cellSize * 0.9f, 0.01f, cellSize * 0.9f));
+                    }
+                    else
+                    {
+                        Gizmos.color = unoccupiedCellColor; // Color for unoccupied cells
                         Gizmos.DrawCube(cellCenter, new Vector3(cellSize * 0.9f, 0.01f, cellSize * 0.9f));
                     }
                 }
             }
         }
     }
+
     #endregion
 }

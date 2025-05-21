@@ -760,11 +760,14 @@ MonoBehaviour:
   gridOrigin: {x: 0, y: 0, z: 0}
   showGrid: 1
   gridColor: {r: 1, g: 1, b: 1, a: 1}
-  occupiedCellColor: {r: 1, g: 0, b: 0, a: 1}
+  occupiedCellColor: {r: 1, g: 0, b: 0, a: 0.09803922}
+  unoccupiedCellColor: {r: 0, g: 1, b: 0, a: 0.11372549}
   currentSelectedObject: {fileID: 0}
   groundLayer:
     serializedVersion: 2
     m_Bits: 257
+  currentBuildingPlaced: {fileID: 0}
+  previousDirection: 0
 --- !u!1 &538703635
 GameObject:
   m_ObjectHideFlags: 0

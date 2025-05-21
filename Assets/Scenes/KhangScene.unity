@@ -969,17 +969,24 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 61c657b149324b25ba7eb4c6af21037b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  gridWidth: 50
-  gridHeight: 50
+  gridWidth: 10
+  gridHeight: 10
   cellSize: 1
   gridOrigin: {x: 0, y: 0, z: 0}
   showGrid: 1
   gridColor: {r: 1, g: 1, b: 1, a: 1}
-  occupiedCellColor: {r: 1, g: 0, b: 0, a: 1}
+  occupiedCellColor: {r: 1, g: 0, b: 0, a: 0.105882354}
+  unoccupiedCellColor: {r: 0, g: 1, b: 0, a: 0.0627451}
   currentSelectedObject: {fileID: 0}
   groundLayer:
     serializedVersion: 2
     m_Bits: 257
+  buildingLayerMask:
+    serializedVersion: 2
+    m_Bits: 512
+  currentBuildingPlaced: {fileID: 0}
+  previousDirection: 0
+  floorData: []
 --- !u!1 &538703635
 GameObject:
   m_ObjectHideFlags: 0
