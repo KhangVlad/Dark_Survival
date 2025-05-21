@@ -9,7 +9,8 @@ using System.Collections;
         public enum Scene
         {
             Loading=0,
-            GamePlay=1
+            GamePlay=1,
+            KhangScene=2,
         }
 
         public static Scene TargetScene;

@@ -29,14 +29,15 @@ public class UIBuildingManager : MonoBehaviour
             Destroy(child.gameObject);
         }
 
-
         for (int i = 0; i < GameManager.Instance.BuildingDataSO.Length; i++)
         {
             var slot = Instantiate(_uiPrefabs, parrent);
             BuildDataSO dataSO =
                 GameManager.Instance.GetBuildingDataByID(GameManager.Instance.BuildingDataSO[i].buildID);
             slot.InitializeData(dataSO);
-            slot.OnClick += (o => { GridBuildingSystem.Instance.currentSelectedObject = o; });
+            slot.OnClick += (o => { 
+                GridBuildingSystem.Instance.StartPlacingBuilding(o);
+            });
         }
     }
 

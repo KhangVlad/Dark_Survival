@@ -1,11 +1,27 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using DG.Tweening;
 using StarterAssets;
+using Random = UnityEngine.Random;
 
 public class PlayerControl : MonoBehaviour
 {
+    public static PlayerControl Instance { get; private set; }
+
+    private void Awake()
+    {
+        if (Instance == null)
+        {
+            Instance = this;
+        }
+        else
+        {
+            Destroy(this.gameObject);
+        }
+    }
+
     [Space] [Header("Components")] [SerializeField]
     private Animator anim;
 
@@ -78,25 +94,25 @@ public class PlayerControl : MonoBehaviour
         thirdPersonController._input.SprintInput(Input.GetKey(KeyCode.LeftShift));
 
         thirdPersonController._input.JumpInput(Input.GetKey(KeyCode.Space));
-        if (Input.GetMouseButtonDown(0))
-        {
-            Attack(0);
-        }
-
-        if (Input.GetMouseButtonDown(1))
-        {
-            Attack(1);
-        }
-
-        if (Input.GetKeyDown(KeyCode.J))
-        {
-            Attack(0);
-        }
-
-        if (Input.GetKeyDown(KeyCode.K))
-        {
-            Attack(1);
-        }
+        // if (Input.GetMouseButtonDown(0))
+        // {
+        //     Attack(0);
+        // }
+        //
+        // if (Input.GetMouseButtonDown(1))
+        // {
+        //     Attack(1);
+        // }
+        //
+        // if (Input.GetKeyDown(KeyCode.J))
+        // {
+        //     Attack(0);
+        // }
+        //
+        // if (Input.GetKeyDown(KeyCode.K))
+        // {
+        //     Attack(1);
+        // }
     }
 
 

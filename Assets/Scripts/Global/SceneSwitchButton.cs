@@ -38,6 +38,11 @@ using UnityEngine.SceneManagement;
             {
                 SceneHelper.StartSceneWithSavePrompt("Assets/Scenes/GamePlay.unity");
             }
+            if (GUILayout.Button(new GUIContent("KhangScene")))
+            {
+                SceneHelper.StartSceneWithSavePrompt("Assets/Scenes/KhangScene.unity");
+            }
+          
             if (GUILayout.Button(new GUIContent("Fast play")))
             {
                 SceneHelper.StartSceneWithSavePrompt("Assets/Scenes/Loading.unity", true);

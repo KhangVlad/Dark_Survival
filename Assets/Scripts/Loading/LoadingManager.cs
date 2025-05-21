@@ -16,6 +16,6 @@
 
         private void LoadScene()
         {
-            Loader.Load(Loader.Scene.GamePlay);
+            Loader.Load(Loader.Scene.KhangScene);
         }
     }

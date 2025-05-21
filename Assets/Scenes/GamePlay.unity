@@ -761,8 +761,7 @@ MonoBehaviour:
   showGrid: 1
   gridColor: {r: 1, g: 1, b: 1, a: 1}
   occupiedCellColor: {r: 1, g: 0, b: 0, a: 1}
-  currentSelectedObject: {fileID: 11400000, guid: 55b990eae437644449debae76eb429f9,
-    type: 2}
+  currentSelectedObject: {fileID: 0}
   groundLayer:
     serializedVersion: 2
     m_Bits: 257
