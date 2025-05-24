@@ -35,10 +35,12 @@ public class UIBuildingManager : MonoBehaviour
             BuildDataSO dataSO =
                 GameManager.Instance.GetBuildingDataByID(GameManager.Instance.BuildingDataSO[i].buildID);
             slot.InitializeData(dataSO);
-            slot.OnClick += (o => { 
+            slot.OnClick += (o =>
+            {
                 GridSystem.Instance.StartPlacingBuilding(o);
+                CanvasController.Instance.SetActiveGameplayCanvas(false);
                 ActiveCanvas(false);
-            });
+            }); 
         }
     }
 

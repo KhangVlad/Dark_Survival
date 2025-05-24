@@ -21,4 +21,10 @@ public class UIGameplay : MonoBehaviour
     {
         buildBtn.onClick.RemoveAllListeners();
     }
+    
+    public void SetActiveCanvas(bool active)
+    {
+        _canvas.enabled = active;
+      
+    }
 }

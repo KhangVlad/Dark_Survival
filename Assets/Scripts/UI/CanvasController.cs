@@ -33,4 +33,9 @@ public class CanvasController : MonoBehaviour
         uiBuilding.ActiveCanvas(active);
         joystick.ActiveCanvas(!active);
     }
+    
+    public void SetActiveGameplayCanvas(bool active)
+    {
+        uiGameplay.SetActiveCanvas(active);
+    }
 }

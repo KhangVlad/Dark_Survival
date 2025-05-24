@@ -8,7 +8,7 @@ public class UIBuildingComfirm : MonoBehaviour //world space ui show option buil
     [SerializeField] private Button confirmButton;
     [SerializeField] private Button cancelButton;
     [SerializeField] private Transform uiTransform; //update position of this ui to the target transform 
-    [SerializeField] private Vector3 offset = new Vector3(0, 1.5f, 0); //offset position of this ui to the target transform
+    [SerializeField] private Vector3 offset = new Vector3(0.5f, 3f, 0); //offset position of this ui to the target transform
 
     private void Awake()
     {
@@ -33,6 +33,7 @@ public class UIBuildingComfirm : MonoBehaviour //world space ui show option buil
         // Cancel the building placement
         GridSystem.Instance.CancelBuilding();
         CanvasController.Instance.ActiveBuildingCanvas(false);
+        CanvasController.Instance.SetActiveGameplayCanvas(true);
     }
     
     public void UpdatePosition(Vector3 targetPosition)
@@ -40,12 +41,12 @@ public class UIBuildingComfirm : MonoBehaviour //world space ui show option buil
         if (uiTransform != null)
         {
             uiTransform.position = targetPosition + offset;
-            
-            // Optional: Make UI face the camera
+
+            // Adjust rotation for isometric view
             if (Camera.main != null)
             {
-                uiTransform.LookAt(Camera.main.transform);
-                uiTransform.Rotate(0, 180, 0); // Flip to face the camera correctly
+                // Match the camera's rotation for isometric alignment
+                uiTransform.rotation = Quaternion.Euler(0, Camera.main.transform.eulerAngles.y, 0);
             }
         }
     }
