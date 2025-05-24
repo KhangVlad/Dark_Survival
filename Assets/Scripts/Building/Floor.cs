@@ -2,7 +2,7 @@ using System;
 using UnityEngine;
 
 [Flags]
-public enum WallDirection
+public enum Direction
 {
     None = 0,
     Top = 1 << 0, 
@@ -24,16 +24,17 @@ public enum WallDirection
 public class Floor : Building
 {
     public Wall[] attachedWalls = new Wall[4];
-    public void SetWallWithDirection(WallDirection direction, Wall w)
+    public void SetWallWithDirection(Direction direction, Wall w)
     {
         Vector2Int gridPosition = GridSystem.Instance.WorldToGridPosition(transform.position);
 
         // Check if the grid position is valid
-        if (!GridSystem.Instance.IsValidGridPosition(gridPosition))
+        if (!GridSystemExtension.IsValidGridPosition(gridPosition,GridSystem.Instance.gridWidth, GridSystem.Instance.gridHeight))
         {
             Debug.LogWarning($"Cannot set wall. Floor at {gridPosition} is outside of grid bounds.");
             return;
         }
+    
 
         // Map WallDirection to array index
         int directionIndex = BuildingExtension.GetWallDirectionIndex(direction);
@@ -47,7 +48,7 @@ public class Floor : Building
         attachedWalls[directionIndex] = w;
     }
     
-    public bool IsDirectionCovered(WallDirection direction)
+    public bool IsDirectionCovered(Direction direction)
     {
         int directionIndex = BuildingExtension.GetWallDirectionIndex(direction);
         if (directionIndex < 0 || directionIndex >= attachedWalls.Length)
@@ -58,6 +59,28 @@ public class Floor : Building
         
         return attachedWalls[directionIndex] != null;
     }
+    
+    public Direction GetRandomAvailableDirection()
+    {
+        Direction availableDirections = Direction.None;
+        for (int i = 0; i < attachedWalls.Length; i++)
+        {
+            if (attachedWalls[i] == null)
+            {
+                availableDirections |= (Direction)(1 << i);
+            }
+        }
+
+        if (availableDirections == Direction.None)
+        {
+            return Direction.None; // No available directions
+        }
+
+        // Randomly select one of the available directions
+        int randomIndex = UnityEngine.Random.Range(0, (int)Mathf.Pow(2, 4));
+        return (Direction)randomIndex & availableDirections;
+    }
+  
 
     // private int GetWallDirectionIndex(WallDirection direction)
     // {

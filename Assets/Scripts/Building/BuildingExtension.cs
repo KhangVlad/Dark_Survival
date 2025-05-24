@@ -1,27 +1,27 @@
 
     public static class BuildingExtension
     {
-        public static int GetWallDirectionIndex(WallDirection direction)
+        public static int GetWallDirectionIndex(Direction direction)
         {
             return direction switch
             {
-                WallDirection.Top => 0,
-                WallDirection.Right => 1,
-                WallDirection.Bot => 2,
-                WallDirection.Left => 3,
+                Direction.Top => 0,
+                Direction.Right => 1,
+                Direction.Bot => 2,
+                Direction.Left => 3,
                 _ => -1 // Invalid direction
             };
         }
 
-        public static WallDirection GetOppositeWallDirection(WallDirection d)
+        public static Direction GetOppositeWallDirection(Direction d)
         {
             return d switch
             {
-                WallDirection.Top => WallDirection.Bot,
-                WallDirection.Right => WallDirection.Left,
-                WallDirection.Bot => WallDirection.Top,
-                WallDirection.Left => WallDirection.Right,
-                _ => WallDirection.None // Invalid direction
+                Direction.Top => Direction.Bot,
+                Direction.Right => Direction.Left,
+                Direction.Bot => Direction.Top,
+                Direction.Left => Direction.Right,
+                _ => Direction.None // Invalid direction
             };
         }
     }

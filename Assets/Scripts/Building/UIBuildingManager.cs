@@ -38,7 +38,6 @@ public class UIBuildingManager : MonoBehaviour
             slot.OnClick += (o =>
             {
                 GridSystem.Instance.StartPlacingBuilding(o);
-                CanvasController.Instance.SetActiveGameplayCanvas(false);
                 ActiveCanvas(false);
             }); 
         }

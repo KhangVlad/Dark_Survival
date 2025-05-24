@@ -53,6 +53,7 @@ public class UIBuildingComfirm : MonoBehaviour //world space ui show option buil
     
     public void ActiveCanvas(bool active)
     {
+        Debug.Log($"ActiveCanvas: {active}");
         _canvas.enabled = active;
         
         // Ensure that the components are properly enabled/disabled
