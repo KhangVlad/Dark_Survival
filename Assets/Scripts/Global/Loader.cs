@@ -73,4 +73,12 @@ using System.Collections;
             // Debug.Log("Scene fully loaded and activated.");
             onCompleted?.Invoke();
         }
+
+        public static int A(int a, int b)
+        {
+            return a + b;
+        }
+
     }
+        
+    

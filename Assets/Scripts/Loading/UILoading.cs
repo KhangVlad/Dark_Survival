@@ -5,7 +5,7 @@ using UnityEngine.UI;
 public class UILoading : MonoBehaviour
 {
     [SerializeField] private Slider progressBar;
-    [SerializeField] private float fillDuration = 0.5f;
+    [SerializeField] private float fillDuration = 2.0f;
     [SerializeField] private float delayAfterFill = 0.2f;
     
     private void Start()
@@ -49,5 +49,7 @@ public class UILoading : MonoBehaviour
         
         // Load the scene
         Loader.Load(Loader.Scene.KhangScene);
+        Loader.A(2, 3);
     }
+    
 }
