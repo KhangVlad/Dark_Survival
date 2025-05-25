@@ -11,15 +11,7 @@ public enum Direction
     Left = 1 << 3,  
     All = Top | Right | Bot | Left
 }
-// public enum WallDirection
-// {
-//     None = 0,
-//     Top = 1 << 0, 
-//     Right = 1 << 1,   
-//     Bot = 1 << 2, 
-//     Left = 1 << 3,  
-//     All = Top | Right | Bot | Left
-// }
+
 
 public class Floor : Building
 {
@@ -31,20 +23,13 @@ public class Floor : Building
         // Check if the grid position is valid
         if (!GridSystemExtension.IsValidGridPosition(gridPosition,GridSystem.Instance.gridWidth, GridSystem.Instance.gridHeight))
         {
-            Debug.LogWarning($"Cannot set wall. Floor at {gridPosition} is outside of grid bounds.");
             return;
         }
-    
-
-        // Map WallDirection to array index
         int directionIndex = BuildingExtension.GetWallDirectionIndex(direction);
         if (directionIndex < 0 || directionIndex >= attachedWalls.Length)
         {
-            Debug.LogError($"Invalid WallDirection: {direction}. Index {directionIndex} is out of bounds.");
             return;
         }
-
-        Debug.Log($"SetWallWithDirection {direction}");
         attachedWalls[directionIndex] = w;
     }
     
@@ -53,45 +38,53 @@ public class Floor : Building
         int directionIndex = BuildingExtension.GetWallDirectionIndex(direction);
         if (directionIndex < 0 || directionIndex >= attachedWalls.Length)
         {
-            Debug.LogError($"Invalid WallDirection: {direction}. Index {directionIndex} is out of bounds.");
             return false;
         }
         
         return attachedWalls[directionIndex] != null;
     }
     
-    public Direction GetRandomAvailableDirection()
+    public bool IsDestroyAble()
     {
-        Direction availableDirections = Direction.None;
-        for (int i = 0; i < attachedWalls.Length; i++)
+        // Check if all walls are null
+        foreach (var wall in attachedWalls)
         {
-            if (attachedWalls[i] == null)
+            if (wall != null)
             {
-                availableDirections |= (Direction)(1 << i);
+                return false; // If any wall is present, the floor cannot be destroyed
             }
         }
-
-        if (availableDirections == Direction.None)
-        {
-            return Direction.None; // No available directions
-        }
-
-        // Randomly select one of the available directions
-        int randomIndex = UnityEngine.Random.Range(0, (int)Mathf.Pow(2, 4));
-        return (Direction)randomIndex & availableDirections;
+        return true; // All walls are null, the floor can be destroyed
     }
-  
-
-    // private int GetWallDirectionIndex(WallDirection direction)
-    // {
-    //     return direction switch
-    //     {
-    //         WallDirection.Top => 0,
-    //         WallDirection.Right => 1,
-    //         WallDirection.Bot => 2,
-    //         WallDirection.Left => 3,
-    //         _ => -1 // Invalid direction
-    //     };
-    // }
+    
+   //check if atleast 1 null wall
+    public bool IsWallAvailable()
+    {
+        foreach (var wall in attachedWalls)
+        {
+            if (wall == null)
+            {
+                return true; // At least one wall is available
+            }
+        }
+        return false; // No walls are available
+    }
+    
+    public Direction GetRandomNullDirection()
+    {
+        Direction[] directions = (Direction[])Enum.GetValues(typeof(Direction));
+        foreach (var direction in directions)
+        {
+            if (direction != Direction.None && !IsDirectionCovered(direction))
+            {
+                return direction; // Return the first uncovered direction
+            }
+        }
+        Debug.LogError("No uncovered direction found.");
+        return Direction.None;
+    }
+    
+   
+    
     
 }

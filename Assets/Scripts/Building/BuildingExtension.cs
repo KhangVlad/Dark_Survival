@@ -1,4 +1,5 @@
-
+using System;
+using UnityEngine;
     public static class BuildingExtension
     {
         public static int GetWallDirectionIndex(Direction direction)
@@ -18,7 +19,7 @@
             return d switch
             {
                 Direction.Top => Direction.Bot,
-                Direction.Right => Direction.Left,
+                Direction.Right => Direction.Left,  
                 Direction.Bot => Direction.Top,
                 Direction.Left => Direction.Right,
                 _ => Direction.None // Invalid direction

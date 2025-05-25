@@ -1,21 +1,49 @@
 using System;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class UIBuildingManager : MonoBehaviour
 {
+    public static UIBuildingManager Instance { get; private set; }
     private Canvas _canvas;
-
     [SerializeField] private UIBuildingSlot _uiPrefabs;
     [SerializeField] private Transform parrent;
-
+    [SerializeField] private Button editModeButton;
+    public event Action<bool> SwitchEditMode;
     private void Awake()
     {
+        if (Instance == null)
+        {
+            Instance = this;
+        }
+        else
+        {
+            Destroy(gameObject);
+            return;
+        }
         _canvas = GetComponent<Canvas>();
     }
 
     private void Start()
     {
         RenderUI();
+        editModeButton.onClick.AddListener(() =>
+        {
+            SwitchEditModeHandler(true);
+            ActiveCanvas(false);
+        });
+    }
+    
+    private void SwitchEditModeHandler(bool isEditMode)
+    {
+        if (isEditMode)
+        {
+            SwitchEditMode?.Invoke(true);
+        }
+        else
+        {
+            SwitchEditMode?.Invoke(false);
+        }
     }
 
     private void OnDestroy()
@@ -46,5 +74,11 @@ public class UIBuildingManager : MonoBehaviour
     public void ActiveCanvas(bool active)
     {
         _canvas.enabled = active;
+    }
+    
+    public void CancelEditMode()
+    {
+        SwitchEditModeHandler(false);
+        ActiveCanvas(false);
     }
 }
