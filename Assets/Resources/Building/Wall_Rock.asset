@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0597a8c582f846f9b5d6683b9c736f33, type: 3}
   m_Name: Wall_Rock
   m_EditorClassIdentifier: 
-  buildID: 1
+  buildID: 2
   objectName: Wall
-  prefab: {fileID: 2987086470070746658, guid: 2d7cac7784b124d1c83326f91f3d5a8a, type: 3}
+  prefab: {fileID: 897538965886614880, guid: 2d7cac7784b124d1c83326f91f3d5a8a, type: 3}
   gridSize: {x: 1, y: 1}
   icon: {fileID: 21300000, guid: 7c51a371edbb04e49aa8a28e0aeb16ec, type: 3}

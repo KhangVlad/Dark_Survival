@@ -6,7 +6,7 @@ public class BuildDataSO : ScriptableObject
 {
     public BuildID buildID;
     public string objectName;
-    public Building prefab;
+    public GameObject prefab;
     public Vector2Int gridSize = Vector2Int.one; 
     public Sprite icon;
 }
@@ -14,7 +14,8 @@ public class BuildDataSO : ScriptableObject
 // BuildingType.cs - Enum for different building types
 public enum BuildID
 {
-    Floor = 0,
-    Wall = 1,
-    Chest = 2,
+    None = 0,
+    Floor = 1,
+    Wall =2,
+    Chest = 3,
 }

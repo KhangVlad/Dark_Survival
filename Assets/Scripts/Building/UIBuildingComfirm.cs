@@ -30,14 +30,14 @@ public class UIBuildingComfirm : MonoBehaviour //world space ui show option buil
 
     private void OnConfirm()
     {
-        GridSystem.Instance.PlaceBuilding();
+        BuildingManager.Instance.PlaceBuilding();
     }
     
  
     
     private void OnCancel()
     {
-        GridSystem.Instance.CancelBuilding();
+        BuildingManager.Instance.CancelBuilding();
         CanvasController.Instance.ActiveBuildingCanvas(false);
         CanvasController.Instance.SetActiveGameplayCanvas(true);
     }

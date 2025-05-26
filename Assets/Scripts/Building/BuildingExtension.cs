@@ -10,6 +10,7 @@ using UnityEngine;
                 Direction.Right => 1,
                 Direction.Bot => 2,
                 Direction.Left => 3,
+                Direction.None => -1, // No direction
                 _ => -1 // Invalid direction
             };
         }
