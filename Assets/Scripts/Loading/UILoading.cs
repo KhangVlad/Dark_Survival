@@ -47,7 +47,6 @@ public class UILoading : MonoBehaviour
         
         yield return new WaitForSeconds(delayAfterFill);
         
-        // Load the scene
         Loader.Load(Loader.Scene.KhangScene);
     }
 }

@@ -2,9 +2,9 @@ using System;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class UIBuildingManager : MonoBehaviour
+public class UIBuilding : MonoBehaviour
 {
-    public static UIBuildingManager Instance { get; private set; }
+    public static UIBuilding Instance { get; private set; }
     private Canvas _canvas;
     [SerializeField] private UIBuildingSlot _uiPrefabs;
     [SerializeField] private Transform parrent;

@@ -46,11 +46,13 @@ public class GridSystem : MonoBehaviour
     public Direction previousDirection;
     private bool[,] gridData;
     private Floor currentHitFloor;
-    private Floor[] floors;
+    public Floor[] floors;
     private UIBuildingComfirm uiBuildingConfirm;
     private Camera playerCamera;
     [SerializeField] private GameObject gridGameObject;
-
+// Add these events to the GridSystem class
+    public event System.Action<Building> OnBuildingPlaced;
+    public event System.Action<Building> OnBuildingRemoved;
     #endregion
 
     #region Initialization
@@ -60,17 +62,16 @@ public class GridSystem : MonoBehaviour
         playerCamera = Camera.main;
         InitializeGrid();
         uiBuildingConfirm = FindObjectOfType<UIBuildingComfirm>();
-        UIBuildingManager.Instance.SwitchEditMode += SwitchEditModeHandler;
+        UIBuilding.Instance.SwitchEditMode += SwitchEditModeHandler;
     }
 
     private void OnDestroy()
     {
-        UIBuildingManager.Instance.SwitchEditMode -= SwitchEditModeHandler;
+        UIBuilding.Instance.SwitchEditMode -= SwitchEditModeHandler;
     }
 
     private void SwitchEditModeHandler(bool isEditMode)
     {
-        Debug.Log($"Switching to {(isEditMode ? "Edit" : "Normal")} Mode");
         IsEditMode = isEditMode;
         if (isEditMode)
         {
@@ -98,15 +99,41 @@ public class GridSystem : MonoBehaviour
     {
         if (IsEditMode)
         {
-            if (Input.GetMouseButtonDown(0) && !Utilities.IsPointerOverUIElement())
+            // if (Input.GetMouseButtonDown(0) && !Utilities.IsPointerOverUIElement())
+            // {
+            //     Vector3 mousePos = Input.mousePosition;
+            //     Ray ray = playerCamera.ScreenPointToRay(mousePos);
+            //     if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, buildingLayerMask))
+            //     {
+            //         if (hit.collider.TryGetComponent(out Building b))
+            //         {
+            //             DestroyBuilding(b);
+            //         }
+            //     }
+            // }
+            
+            //debug grid pos by mouse 
+            if (Input.GetMouseButton(0))
             {
+                //if cell is occupied by floor debug not use ray , use grid 
                 Vector3 mousePos = Input.mousePosition;
                 Ray ray = playerCamera.ScreenPointToRay(mousePos);
-                if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, buildingLayerMask))
+                if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, groundLayer))
                 {
-                    if (hit.collider.TryGetComponent(out Building b))
+                    Vector2Int gridPosition = WorldToGridPosition(hit.point);
+                    if (IsValidGridPosition(gridPosition))
                     {
-                        DestroyBuilding(b);
+                        if (gridData[gridPosition.x, gridPosition.y])
+                        {
+                          Debug.Log("Delete Floor at    grid position: " + gridPosition);
+                            int index = gridPosition.x + gridPosition.y * gridWidth;
+                            if (index >= 0 && index < floors.Length && floors[index] != null)
+                            {
+                                DestroyBuilding(floors[index]);
+                                floors[index] = null; 
+                            }
+                        }
+                        
                     }
                 }
             }
@@ -146,13 +173,13 @@ public class GridSystem : MonoBehaviour
                 {
                     floors[index] = null; // Remove the floor from the array
                 }
-
+                OnBuildingRemoved?.Invoke(b);
                 Destroy(floor.gameObject);
             }
         }
         else if (b is Wall wall)
         {
-          //handle later
+            Destroy( wall.gameObject);
         }
     }
 
@@ -568,11 +595,42 @@ public class GridSystem : MonoBehaviour
         Vector3 worldPosition = GridToWorldPosition(gridPosition);
         Building newObject = Instantiate(currentSelectedObject.prefab, worldPosition, Quaternion.identity);
         newObject.SetBuildingData(new BuildingData(currentSelectedObject));
-        // Calculate correct index based on the grid position where the floor is placed
         int index = gridPosition.x + gridPosition.y * gridWidth;
-
-        // Store the floor in the correct position in the array
         floors[index] = newObject as Floor;
+        //find 4 floor direction next to this grid
+        Floor floor1 = GetFloorConnectWith(floors[index], Direction.Top);
+        if (floor1 != null)
+        {
+            if (floor1.IsHaveWallAtDirection(Direction.Bot))
+            {
+                floors[index].SetWallWithDirection(Direction.Top, floor1.GetWallAtDirection(Direction.Bot));
+            }
+        }
+        Floor floor2 = GetFloorConnectWith(floors[index], Direction.Right);
+        if (floor2 != null)
+        {
+            if (floor2.IsHaveWallAtDirection(Direction.Left))
+            {
+                floors[index].SetWallWithDirection(Direction.Right, floor2.GetWallAtDirection(Direction.Left));
+            }
+        }
+        Floor floor3 = GetFloorConnectWith(floors[index], Direction.Bot);
+        if (floor3 != null)
+        {
+            if (floor3.IsHaveWallAtDirection(Direction.Top))
+            {
+                floors[index].SetWallWithDirection(Direction.Bot, floor3.GetWallAtDirection(Direction.Top));
+            }
+        }
+        Floor floor4 = GetFloorConnectWith(floors[index], Direction.Left);
+        if (floor4 != null)
+        {
+            if (floor4.IsHaveWallAtDirection(Direction.Right))
+            {
+                floors[index].SetWallWithDirection(Direction.Left, floor4.GetWallAtDirection(Direction.Right));
+            }
+        }
+        OnBuildingPlaced?.Invoke(newObject);
     }
 
     private void PlaceWall(Vector2Int gridPosition, Direction direction)

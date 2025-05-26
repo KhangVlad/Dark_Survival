@@ -6,7 +6,7 @@ public class CanvasController : MonoBehaviour
 {
     public static CanvasController Instance { get; private set; }
     public UIGameplay uiGameplay { get; set; }
-    public UIBuildingManager uiBuilding { get; set; }
+    public UIBuilding uiBuilding { get; set; }
     public UICanvasControllerInput joystick { get; set; }
 
     private void Awake()
@@ -24,7 +24,7 @@ public class CanvasController : MonoBehaviour
     private void Start()
     {
         uiGameplay = FindFirstObjectByType<UIGameplay>();
-        uiBuilding = FindFirstObjectByType<UIBuildingManager>();
+        uiBuilding = FindFirstObjectByType<UIBuilding>();
         joystick = FindFirstObjectByType<UICanvasControllerInput>();
     }
 

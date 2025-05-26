@@ -19,7 +19,7 @@ public class UIGameplay : MonoBehaviour
     private void Start()
     {
         buildBtn.onClick.AddListener(HandleClick);
-        UIBuildingManager.Instance.SwitchEditMode += SwitchEditMode;
+        UIBuilding.Instance.SwitchEditMode += SwitchEditMode;
         // Start with normal icon
         buildBtn.image.sprite = normalIcon;
     }
@@ -30,11 +30,11 @@ public class UIGameplay : MonoBehaviour
         {
             // Normal mode -> enter building selection
             CanvasController.Instance.ActiveBuildingCanvas(true);
-            UIBuildingManager.Instance.ActiveCanvas(true);
+            UIBuilding.Instance.ActiveCanvas(true);
         }
         else
         {
-            UIBuildingManager.Instance.CancelEditMode();
+            UIBuilding.Instance.CancelEditMode();
             CanvasController.Instance.ActiveBuildingCanvas(false);
         }
     }
@@ -42,9 +42,9 @@ public class UIGameplay : MonoBehaviour
     private void OnDestroy()
     {
         buildBtn.onClick.RemoveAllListeners();
-        if (UIBuildingManager.Instance != null)
+        if (UIBuilding.Instance != null)
         {
-            UIBuildingManager.Instance.SwitchEditMode -= SwitchEditMode;
+            UIBuilding.Instance.SwitchEditMode -= SwitchEditMode;
         }
     }
 

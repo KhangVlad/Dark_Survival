@@ -84,6 +84,28 @@ public class Floor : Building
         return Direction.None;
     }
     
+    
+    public bool IsHaveWallAtDirection(Direction direction)
+    {
+        int directionIndex = BuildingExtension.GetWallDirectionIndex(direction);
+        if (directionIndex < 0 || directionIndex >= attachedWalls.Length)
+        {
+            return false; // Invalid direction index
+        }
+        
+        return attachedWalls[directionIndex] != null; // Check if the wall at the specified direction is not null
+    }
+    
+    public Wall GetWallAtDirection(Direction direction)
+    {
+        int directionIndex = BuildingExtension.GetWallDirectionIndex(direction);
+        if (directionIndex < 0 || directionIndex >= attachedWalls.Length)
+        {
+            return null; // Invalid direction index
+        }
+        
+        return attachedWalls[directionIndex]; // Return the wall at the specified direction
+    }
    
     
     
