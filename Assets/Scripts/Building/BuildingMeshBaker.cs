@@ -229,11 +229,14 @@ private void RebuildCombinedMesh(BuildID buildingID)
     if (combinedMeshObjects.TryGetValue(buildingID, out GameObject combinedObject))
     {
         combinedObject.GetComponent<MeshFilter>().mesh = combinedMesh;
-        combinedObject.GetComponent<MeshRenderer>().material = settings.material;
-
+        MeshRenderer combinedRenderer = combinedObject.GetComponent<MeshRenderer>();
+        combinedRenderer.material = settings.material;
         MeshCollider collider = combinedObject.GetComponent<MeshCollider>();
         if (collider == null) collider = combinedObject.AddComponent<MeshCollider>();
         collider.sharedMesh = combinedMesh;
+        combinedRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        combinedRenderer.receiveShadows = false;
+        combinedRenderer.enabled = settings.useCombinedMesh;
     }
     
     
