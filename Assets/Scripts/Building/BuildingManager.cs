@@ -32,6 +32,7 @@ public class BuildingManager : MonoBehaviour
     private UIBuildingComfirm uiBuildingConfirm;
     private Camera playerCamera;
     [SerializeField] private GameObject gridGameObject;
+    [SerializeField] private GameObject temp;
     
     public event Action<GameObject,BuildID,Vector2Int> OnPlaceBuilding;
 
@@ -46,6 +47,7 @@ public class BuildingManager : MonoBehaviour
         floors = new Floor[size];
     }
 
+   
     private void OnDestroy()
     {
         UIBuilding.Instance.SwitchEditMode -= SwitchEditModeHandler;

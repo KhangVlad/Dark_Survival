@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using System.Linq;
 
 public class BuildingMeshBaker : MonoBehaviour
 {
@@ -19,6 +20,8 @@ public class BuildingMeshBaker : MonoBehaviour
     
     // Track which types need rebuilding
     private HashSet<BuildID> needsRebuild = new HashSet<BuildID>();
+
+    [SerializeField] private GameObject tempGameObject;
     
     private void Awake()
     {
@@ -40,6 +43,124 @@ public class BuildingMeshBaker : MonoBehaviour
        BuildingManager.Instance.OnPlaceBuilding += CreateMesh;
        
     }
+
+ 
+   
+  [ContextMenu("Test Merge")]
+public void Test()
+{
+    // Create a test GameObject if not provided
+    if (tempGameObject == null)
+    {
+        Debug.LogError("No tempGameObject assigned for instancing test");
+        return;
+    }
+
+    // Create a temporary container for test instances
+    GameObject testContainer = new GameObject("TestInstances");
+    testContainer.transform.parent = transform;
+
+    // Get mesh data from template
+    MeshFilter templateMeshFilter = tempGameObject.GetComponentInChildren<MeshFilter>();
+    MeshRenderer templateRenderer = tempGameObject.GetComponentInChildren<MeshRenderer>();
+
+    if (templateMeshFilter == null || templateMeshFilter.sharedMesh == null || templateRenderer == null)
+    {
+        Debug.LogError("Template object missing required components (MeshFilter or MeshRenderer)");
+        Destroy(testContainer);
+        return;
+    }
+
+    // Create list for combining
+    List<CombineInstance> combines = new List<CombineInstance>(10000);
+    Mesh meshToUse = templateMeshFilter.sharedMesh;
+    Material materialToUse = templateRenderer.sharedMaterial;
+
+    // Calculate grid size for a square layout
+    int gridSize = 100; // 100x100 grid = 10,000 objects
+    float spacing = 1.0f;
+
+    Debug.Log("Creating 10,000 mesh instances...");
+    
+    // Generate 10,000 instances in a grid pattern
+    for (int x = 0; x < gridSize; x++)
+    {
+        for (int z = 0; z < gridSize; z++)
+        {
+            // Create random variations
+            float yRotation = UnityEngine.Random.Range(0f, 360f);
+            float yOffset = UnityEngine.Random.Range(-0.05f, 0.05f);
+            float scaleVariation = UnityEngine.Random.Range(0.9f, 1.1f);
+            
+            // Position in grid with slight random offset
+            Vector3 position = new Vector3(
+                x * spacing + UnityEngine.Random.Range(-0.1f, 0.1f),
+                yOffset,
+                z * spacing + UnityEngine.Random.Range(-0.1f, 0.1f)
+            );
+            
+            // Create transform matrix
+            Matrix4x4 matrix = Matrix4x4.TRS(
+                position,
+                Quaternion.Euler(0, yRotation, 0),
+                Vector3.one * scaleVariation
+            );
+            
+            // Add to combines list
+            CombineInstance ci = new CombineInstance
+            {
+                mesh = meshToUse,
+                transform = matrix
+            };
+            combines.Add(ci);
+        }
+    }
+    
+    Debug.Log($"Created {combines.Count} mesh instances, baking combined mesh...");
+    
+    // Create combined mesh
+    Mesh combinedMesh = new Mesh();
+    combinedMesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
+    
+    // Batch combine for very large meshes (to avoid timeout)
+    int batchSize = 1000;
+    int totalBatches = Mathf.CeilToInt(combines.Count / (float)batchSize);
+    
+    GameObject combinedObject = new GameObject("Combined_10000_Instances");
+    combinedObject.transform.parent = transform;
+    
+    for (int batchIndex = 0; batchIndex < totalBatches; batchIndex++)
+    {
+        int startIndex = batchIndex * batchSize;
+        int count = Mathf.Min(batchSize, combines.Count - startIndex);
+        
+        // Create mesh for this batch
+        Mesh batchMesh = new Mesh();
+        batchMesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
+        batchMesh.CombineMeshes(combines.GetRange(startIndex, count).ToArray(), true);
+        
+        // Create batch object
+        GameObject batchObject = new GameObject($"Batch_{batchIndex}");
+        batchObject.transform.parent = combinedObject.transform;
+        
+        MeshFilter batchFilter = batchObject.AddComponent<MeshFilter>();
+        batchFilter.mesh = batchMesh;
+        
+        MeshRenderer batchRenderer = batchObject.AddComponent<MeshRenderer>();
+        batchRenderer.material = materialToUse;
+        batchRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        batchRenderer.receiveShadows = false;
+        
+        // Add collider if needed (might be too heavy for 10k objects)
+        // MeshCollider collider = batchObject.AddComponent<MeshCollider>();
+        // collider.sharedMesh = batchMesh;
+    }
+    
+    Debug.Log($"Completed baking {combines.Count} instances into {totalBatches} batch objects");
+    
+    // Clean up temporary objects
+    // Destroy(testContainer);
+}
 
     private void Update()
     {

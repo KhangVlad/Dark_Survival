@@ -35,7 +35,7 @@ Material:
     - _ShowGrid: 1
     - _UseOccupancyData: 0.448
     m_Colors:
-    - _Color: {r: 0.09999994, g: 0.09999994, b: 0.09999994, a: 0.7647059}
+    - _Color: {r: 0.09999991, g: 0.09999991, b: 0.09999991, a: 0}
     - _GridColor: {r: 1, g: 1, b: 1, a: 1}
     - _OccupiedColor: {r: 0.9, g: 0.19999996, b: 0.19999996, a: 0.7}
     - _UnoccupiedColor: {r: 0.19999996, g: 0.9, b: 0.19999996, a: 0.7}

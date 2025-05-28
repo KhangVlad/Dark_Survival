@@ -1,0 +1,49 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Unlit_StyleGrass
+  m_Shader: {fileID: 4800000, guid: dafb87f891a148ddaa9263dc53a478bc, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _FlowerTex:
+        m_Texture: {fileID: 2800000, guid: 837ef58da52594200a06f8f21c5d3edb, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MainTex:
+        m_Texture: {fileID: 2800000, guid: 3d7e23f397bd4e347bc2a33df00d0897, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _FlowerCount: 43.29
+    - _FlowerDensity: 13.5
+    - _FlowerRotate: 237
+    - _FlowerScale: -23.09
+    - _FlowerSize: 0.041
+    - _FlowerSizeVariation: 0.29
+    - _RandomRotation: 0
+    - _RandomSeed: 2.18
+    - _RotationMax: 180
+    - _SwayAmount: 0.0062
+    - _SwaySpeed: 0.52
+    m_Colors: []
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1

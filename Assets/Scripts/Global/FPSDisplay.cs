@@ -11,7 +11,7 @@ namespace Match3.Shares
         {
             //application.targetFrameRate = 60; // Set target frame rate
 
-            Application.targetFrameRate = 60;
+            Application.targetFrameRate = 500;
         }
 
         private void Update()
