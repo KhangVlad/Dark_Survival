@@ -49,7 +49,7 @@ public class UILoading : MonoBehaviour
         
         // Load the scene
         Loader.Load(Loader.Scene.KhangScene);
-        Loader.A(2, 3);
+        
     }
     
 }
