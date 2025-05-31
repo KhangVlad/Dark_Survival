@@ -1,811 +1,15 @@
-// using System;
-// using System.Collections.Generic;
-// using UnityEngine;
-//
-// public class GridSystem : MonoBehaviour
-// {
-//     #region Singleton
-//
-//     public static GridSystem Instance { get; private set; }
-//
-//     private void Awake()
-//     {
-//         if (Instance == null)
-//         {
-//             Instance = this;
-//         }
-//         else
-//         {
-//             Destroy(this.gameObject);
-//         }
-//     }
-//
-//     #endregion
-//
-//     #region Properties and Fields
-//
-//     [Header("Grid Settings")] public int gridWidth = 50;
-//     public int gridHeight = 50;
-//     public float cellSize = 1f;
-//     public Vector3 gridOrigin = Vector3.zero;
-//
-//     [Header("Gizmos")] public bool showGrid = true;
-//     public Color gridColor = Color.white;
-//     public Color occupiedCellColor = Color.red;
-//     public Color unoccupiedCellColor = Color.green;
-//
-//     [Header("Building")] public BuildDataSO currentSelectedObject;
-//     public LayerMask groundLayer = 1;
-//     public LayerMask buildingLayerMask = 1;
-//
-//     private Building _previewBuilding;
-//     private Vector2Int currentPreviewPosition;
-//     public bool isPlacing = false;
-//     public bool isDragging = false;
-//     public bool IsEditMode = false;
-//     public Direction previousDirection;
-//     private bool[,] gridData;
-//     private Floor currentHitFloor;
-//     public Floor[] floors;
-//     private UIBuildingComfirm uiBuildingConfirm;
-//     private Camera playerCamera;
-//     [SerializeField] private GameObject gridGameObject;
-// // Add these events to the GridSystem class
-//     public event System.Action<Building> OnBuildingPlaced;
-//     public event System.Action<Building> OnBuildingRemoved;
-//     #endregion
-//
-//     #region Initialization
-//
-//     void Start()
-//     {
-//         playerCamera = Camera.main;
-//         InitializeGrid();
-//         uiBuildingConfirm = FindObjectOfType<UIBuildingComfirm>();
-//         UIBuilding.Instance.SwitchEditMode += SwitchEditModeHandler;
-//     }
-//
-//     private void OnDestroy()
-//     {
-//         UIBuilding.Instance.SwitchEditMode -= SwitchEditModeHandler;
-//     }
-//
-//     private void SwitchEditModeHandler(bool isEditMode)
-//     {
-//         IsEditMode = isEditMode;
-//         if (isEditMode)
-//         {
-//             SetGridMaterialValue(1);
-//             CanvasController.Instance.SetActiveGameplayCanvas(false);
-//         }
-//         else
-//         {
-//             SetGridMaterialValue(0);
-//             CanvasController.Instance.SetActiveGameplayCanvas(true);
-//         }
-//     }
-//
-//     void InitializeGrid()
-//     {
-//         gridData = new bool[gridWidth, gridHeight];
-//         floors = new Floor[gridWidth * gridHeight];
-//     }
-//
-//     #endregion
-//
-//     #region Main Update Loop
-//
-//     void Update()
-//     {
-//         if (IsEditMode)
-//         {
-//             // if (Input.GetMouseButtonDown(0) && !Utilities.IsPointerOverUIElement())
-//             // {
-//             //     Vector3 mousePos = Input.mousePosition;
-//             //     Ray ray = playerCamera.ScreenPointToRay(mousePos);
-//             //     if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, buildingLayerMask))
-//             //     {
-//             //         if (hit.collider.TryGetComponent(out Building b))
-//             //         {
-//             //             DestroyBuilding(b);
-//             //         }
-//             //     }
-//             // }
-//             
-//             //debug grid pos by mouse 
-//             if (Input.GetMouseButton(0))
-//             {
-//                 //if cell is occupied by floor debug not use ray , use grid 
-//                 Vector3 mousePos = Input.mousePosition;
-//                 Ray ray = playerCamera.ScreenPointToRay(mousePos);
-//                 if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, groundLayer))
-//                 {
-//                     Vector2Int gridPosition = WorldToGridPosition(hit.point);
-//                     if (IsValidGridPosition(gridPosition))
-//                     {
-//                         if (gridData[gridPosition.x, gridPosition.y])
-//                         {
-//                           Debug.Log("Delete Floor at    grid position: " + gridPosition);
-//                             int index = gridPosition.x + gridPosition.y * gridWidth;
-//                             if (index >= 0 && index < floors.Length && floors[index] != null)
-//                             {
-//                                 DestroyBuilding(floors[index]);
-//                                 floors[index] = null; 
-//                             }
-//                         }
-//                         
-//                     }
-//                 }
-//             }
-//         }
-//         else
-//         {
-//             if (Utilities.IsPointerOverUIElement()) return;
-//             if (isPlacing && _previewBuilding != null)
-//             {
-//                 HandlePlacementMode();
-//             }
-//
-//             if (Input.GetMouseButton(0) && IsDraggingWall())
-//             {
-//                 HandleWallDragging();
-//             }
-//
-//             if (Input.GetMouseButton(0) && IsDraggingFloor())
-//             {
-//                 HandleFloorDragging();
-//             }
-//         }
-//     }
-//
-//     private void DestroyBuilding(Building b)
-//     {
-//         if (b is Floor floor)
-//         {
-//             if (floor.IsDestroyAble())
-//             {
-//                 // Destroy floor and free grid cells
-//                 Vector2Int gridPosition = WorldToGridPosition(floor.transform.position);
-//                 Debug.Log($"Destroying floor at grid position: {gridPosition}");
-//                 MarkGridCells(gridPosition, floor.buildingData.gridSize, false);
-//                 int index = gridPosition.x + gridPosition.y * gridWidth;
-//                 if (index >= 0 && index < floors.Length)
-//                 {
-//                     floors[index] = null; // Remove the floor from the array
-//                 }
-//                 OnBuildingRemoved?.Invoke(b);
-//                 Destroy(floor.gameObject);
-//             }
-//         }
-//         else if (b is Wall wall)
-//         {
-//             Destroy( wall.gameObject);
-//         }
-//     }
-//
-//     private void HandleWallDragging()
-//     {
-//         Vector3 mousePos = Input.mousePosition;
-//         Ray ray = playerCamera.ScreenPointToRay(mousePos);
-//         if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, groundLayer))
-//         {
-//             if (Physics.Raycast(ray, out RaycastHit hitBuilding, Mathf.Infinity, buildingLayerMask))
-//             {
-//                 Vector2Int gridPosition = WorldToGridPosition(hitBuilding.point);
-//                 Building building = hitBuilding.collider.GetComponent<Building>();
-//                 if (building is Floor)
-//                 {
-//                     if (building != currentHitFloor)
-//                     {
-//                         currentHitFloor = building as Floor;
-//                     }
-//
-//                     currentPreviewPosition = gridPosition;
-//                     Direction direction = GridSystemExtension.CalculateWallDirection(
-//                         hit.point,
-//                         GridSystemExtension.GetGridCenterPosition(gridPosition, gridOrigin, cellSize)
-//                     );
-//
-//                     if (currentHitFloor.IsDirectionCovered(direction)) return;
-//                     previousDirection = direction;
-//                     UpdatePreviewPositionAndRotation(direction, _previewBuilding);
-//                 }
-//             }
-//         }
-//     }
-//
-//     private void HandleFloorDragging()
-//     {
-//         Vector3 mousePos = Input.mousePosition;
-//         Ray ray = playerCamera.ScreenPointToRay(mousePos);
-//         if (Physics.Raycast(ray, out RaycastHit hit, Mathf.Infinity, groundLayer))
-//         {
-//             Vector2Int gridPosition = WorldToGridPosition(hit.point);
-//             if (IsCellOccupied(gridPosition, currentSelectedObject.gridSize)) return;
-//
-//             if (gridPosition != currentPreviewPosition)
-//             {
-//                 currentPreviewPosition = gridPosition;
-//                 UpdatePreviewTransform();
-//
-//                 // Update confirmation UI position if it's active
-//                 if (uiBuildingConfirm != null && uiBuildingConfirm.gameObject.activeSelf)
-//                 {
-//                     uiBuildingConfirm.UpdatePosition(GridToWorldPosition(gridPosition));
-//                 }
-//             }
-//         }
-//     }
-//
-//     private bool IsDraggingWall()
-//     {
-//         return isDragging && currentSelectedObject.buildID == BuildID.Wall;
-//     }
-//
-//     private bool IsDraggingFloor()
-//     {
-//         return isDragging && currentSelectedObject.buildID == BuildID.Floor;
-//     }
-//
-//     private void HandlePlacementMode()
-//     {
-//         if (Input.GetMouseButtonDown(0) && !Utilities.IsPointerOverUIElement())
-//         {
-//             isDragging = true;
-//             uiBuildingConfirm.ActiveCanvas(false);
-//         }
-//
-//         // if (isDragging)
-//         // {
-//         //     uiBuildingConfirm.ActiveCanvas(false);
-//         // }
-//
-//         if (Input.GetMouseButtonUp(0))
-//         {
-//             isDragging = false;
-//             if (uiBuildingConfirm != null)
-//             {
-//                 uiBuildingConfirm.ActiveCanvas(true);
-//                 uiBuildingConfirm.UpdatePosition(GridToWorldPosition(currentPreviewPosition));
-//             }
-//         }
-//     }
-//
-//     #endregion
-//
-//     #region Building Placement
-//
-//     public void StartPlacingBuilding(BuildDataSO buildData)
-//     {
-//         SetGridMaterialValue(1);
-//         currentSelectedObject = buildData;
-//
-//         switch (buildData.buildID)
-//         {
-//             case BuildID.Floor:
-//                 HandleCreateFloorPreview();
-//                 break;
-//             case BuildID.Wall:
-//                 HandleCreateWallPreview();
-//                 break;
-//         }
-//
-//         isPlacing = true;
-//     }
-//
-//     private void SetGridMaterialValue(float value)
-//     {
-//         if (gridGameObject != null)
-//         {
-//             Renderer renderer = gridGameObject.GetComponent<Renderer>();
-//             Material gridMaterial = renderer.material;
-//             gridMaterial.SetFloat("_ShowGrid", value);
-//         }
-//     }
-//
-//     private void HandleCreateWallPreview()
-//     {
-//         Floor validFloor = FindValidFloor();
-//         currentHitFloor = validFloor;   
-//         if (validFloor == null)
-//         {
-//             CancelBuilding();
-//            
-//         }
-//         else
-//         {
-//             Vector2Int gridPosition = WorldToGridPosition(validFloor.transform.position);
-//             currentPreviewPosition = gridPosition;
-//             _previewBuilding = Instantiate(currentSelectedObject.prefab);
-//             previousDirection = validFloor.GetRandomNullDirection();
-//             UpdatePreviewPositionAndRotation(previousDirection, _previewBuilding);
-//             uiBuildingConfirm.UpdatePosition(GridToWorldPosition(gridPosition));
-//             uiBuildingConfirm.ActiveCanvas(true);
-//         }
-//     }
-//
-//     private Floor FindValidFloor()
-//     {
-//         Floor validFloor = null;
-//         for (int i = 0; i < floors.Length; i++)
-//         {
-//             if (floors[i] != null && floors[i].IsWallAvailable())
-//             {
-//                 validFloor = floors[i];
-//                 if (validFloor.IsWallAvailable())
-//                 {
-//                     break;
-//                 }
-//             }
-//         }
-//
-//         return validFloor;
-//     }
-//
-//
-//     private void HandleCreateFloorPreview()
-//     {
-//         Floor closestFloor = FindClosestAvailableFloorFromCharacter8Dir(out Vector2Int direction);
-//         if (closestFloor == null)
-//         {
-//             Vector2Int characterPos = GetClosestGridPositionFromCharacter();
-//             CreatePreview(characterPos);
-//         }
-//         else
-//         {
-//             CreatePreview(direction);
-//         }
-//     }
-//
-//     private Floor FindClosestAvailableFloorFromCharacter8Dir(out Vector2Int randomFreePos)
-//     {
-//         Vector3 playerPos = PlayerControl.Instance.transform.position;
-//         randomFreePos = Vector2Int.zero;
-//         List<Floor> availableFloors = new List<Floor>();
-//
-//         for (int i = 0; i < floors.Length; i++)
-//         {
-//             if (floors[i] != null)
-//             {
-//                 availableFloors.Add(floors[i]);
-//             }
-//         }
-//
-//         // Find closest floor with free adjacent positions
-//         Floor closestFloor = null;
-//         float closestDistance = Mathf.Infinity;
-//
-//         foreach (Floor floor in availableFloors)
-//         {
-//             float distance = Vector3.Distance(playerPos, floor.transform.position);
-//             if (distance < closestDistance)
-//             {
-//                 Vector2Int gridPosition = WorldToGridPosition(floor.transform.position);
-//
-//                 if (HasFreeAdjacent8Position(gridPosition, out Vector2Int direction))
-//                 {
-//                     closestDistance = distance;
-//                     closestFloor = floor;
-//                     randomFreePos = direction;
-//                 }
-//             }
-//         }
-//
-//         return closestFloor;
-//     }
-//
-//
-//     private bool HasFreeAdjacent8Position(Vector2Int gridPosition, out Vector2Int randomFreePos)
-//     {
-//         Vector2Int[] directions =
-//         {
-//             Vector2Int.up,
-//             Vector2Int.up + Vector2Int.right,
-//             Vector2Int.right,
-//             Vector2Int.down + Vector2Int.right,
-//             Vector2Int.down,
-//             Vector2Int.down + Vector2Int.left,
-//             Vector2Int.left,
-//             Vector2Int.up + Vector2Int.left
-//         };
-//
-//         List<Vector2Int> freePositions = new List<Vector2Int>();
-//
-//         foreach (Vector2Int direction in directions)
-//         {
-//             Vector2Int adjacentPos = gridPosition + direction;
-//
-//             if (IsValidGridPosition(adjacentPos) && !gridData[adjacentPos.x, adjacentPos.y])
-//             {
-//                 freePositions.Add(adjacentPos);
-//             }
-//         }
-//
-//         if (freePositions.Count > 0)
-//         {
-//             randomFreePos = freePositions[UnityEngine.Random.Range(0, freePositions.Count)];
-//             return true;
-//         }
-//
-//         randomFreePos = default;
-//         return false;
-//     }
-//
-//
-//     public void PlaceBuilding()
-//     {
-//         if (_previewBuilding != null && isPlacing)
-//         {
-//             // Try to build at current preview position
-//             bool success = TryBuildObject(currentPreviewPosition);
-//             Destroy(_previewBuilding.gameObject);
-//
-//             if (success)
-//             {
-//                 switch (currentSelectedObject.buildID)
-//                 {
-//                     case BuildID.Floor:
-//                         HandleCreateFloorPreview();
-//                         break;
-//                     case BuildID.Wall:
-//                         HandleCreateWallPreview();
-//                         break;
-//                 }
-//             }
-//             else
-//             {
-//                 
-//                 CancelBuilding();
-//             }
-//         }
-//     }
-//
-//     private Floor GetFloorConnectWith(Floor f, Direction d)
-//     {
-//         Vector2Int gridPosition = WorldToGridPosition(f.transform.position);
-//         Vector2Int checkPos = gridPosition;
-//
-//         switch (d)
-//         {
-//             case Direction.Top:
-//                 checkPos += Vector2Int.up;
-//                 break;
-//             case Direction.Right:
-//                 checkPos += Vector2Int.right;
-//                 break;
-//             case Direction.Bot:
-//                 checkPos += Vector2Int.down;
-//                 break;
-//             case Direction.Left:
-//                 checkPos += Vector2Int.left;
-//                 break;
-//         }
-//
-//         // Check if the position is valid before accessing the array
-//         if (!IsValidGridPosition(checkPos))
-//         {
-//             return null;
-//         }
-//
-//         int index = checkPos.x + checkPos.y * gridWidth;
-//
-//         // Verify index is within array bounds
-//         if (index < 0 || index >= floors.Length)
-//         {
-//             return null;
-//         }
-//
-//         return floors[index];
-//     }
-//
-//     /// <summary>
-//     /// Cancels the current building placement operation
-//     /// </summary>
-//     public void CancelBuilding()
-//     {
-//         SetGridMaterialValue(0);
-//         if (_previewBuilding != null)
-//         {
-//             Destroy(_previewBuilding.gameObject);
-//             _previewBuilding = null;
-//         }
-//
-//         isPlacing = false;
-//         isDragging = false;
-//
-//         if (uiBuildingConfirm != null)
-//         {
-//             uiBuildingConfirm.ActiveCanvas(false);
-//         }
-//
-//         CanvasController.Instance.SetActiveGameplayCanvas(true);
-//     }
-//
-//     public bool TryBuildObject(Vector2Int gridPosition)
-//     {
-//         if (!IsValidGridPosition(gridPosition)) return false;
-//
-//         switch (currentSelectedObject.buildID)
-//         {
-//             case BuildID.Floor:
-//                 if (!CanPlaceObject(gridPosition, currentSelectedObject.gridSize)) return false;
-//                 MarkGridCells(gridPosition, currentSelectedObject.gridSize, true);
-//                 PlaceFloor(gridPosition);
-//                 break;
-//             case BuildID.Wall:
-//                 Direction direction = GridSystemExtension.CalculateWallDirection(
-//                     _previewBuilding.transform.position,
-//                     GridSystemExtension.GetGridCenterPosition(currentPreviewPosition, gridOrigin, cellSize)
-//                 );
-//                 PlaceWall(gridPosition, direction);
-//                 break;
-//         }
-//
-//         return true;
-//     }
-//
-//     private bool CanPlaceObject(Vector2Int gridPosition, Vector2Int gridSize)
-//     {
-//         for (int x = 0; x < gridSize.x; x++)
-//         {
-//             for (int y = 0; y < gridSize.y; y++)
-//             {
-//                 Vector2Int checkPos = gridPosition + new Vector2Int(x, y);
-//                 if (!IsValidGridPosition(checkPos) || gridData[checkPos.x, checkPos.y])
-//                 {
-//                     return false;
-//                 }
-//             }
-//         }
-//
-//         return true;
-//     }
-//
-//     private void MarkGridCells(Vector2Int gridPosition, Vector2Int gridSize, bool isOccupied)
-//     {
-//         for (int x = 0; x < gridSize.x; x++)
-//         {
-//             for (int y = 0; y < gridSize.y; y++)
-//             {
-//                 Vector2Int cellPos = gridPosition + new Vector2Int(x, y);
-//                 gridData[cellPos.x, cellPos.y] = isOccupied;
-//             }
-//         }
-//     }
-//
-//     private bool IsCellOccupied(Vector2Int gridPosition, Vector2Int gridSize)
-//     {
-//         for (int x = 0; x < gridSize.x; x++)
-//         {
-//             for (int y = 0; y < gridSize.y; y++)
-//             {
-//                 Vector2Int checkPos = gridPosition + new Vector2Int(x, y);
-//                 if (!IsValidGridPosition(checkPos) || gridData[checkPos.x, checkPos.y])
-//                 {
-//                     return true;
-//                 }
-//             }
-//         }
-//
-//         return false;
-//     }
-//
-//     private void PlaceFloor(Vector2Int gridPosition)
-//     {
-//         Vector3 worldPosition = GridToWorldPosition(gridPosition);
-//         Building newObject = Instantiate(currentSelectedObject.prefab, worldPosition, Quaternion.identity);
-//         newObject.SetBuildingData(new BuildingData(currentSelectedObject));
-//         int index = gridPosition.x + gridPosition.y * gridWidth;
-//         floors[index] = newObject as Floor;
-//         //find 4 floor direction next to this grid
-//         Floor floor1 = GetFloorConnectWith(floors[index], Direction.Top);
-//         if (floor1 != null)
-//         {
-//             if (floor1.IsHaveWallAtDirection(Direction.Bot))
-//             {
-//                 floors[index].SetWallWithDirection(Direction.Top, floor1.GetWallAtDirection(Direction.Bot));
-//             }
-//         }
-//         Floor floor2 = GetFloorConnectWith(floors[index], Direction.Right);
-//         if (floor2 != null)
-//         {
-//             if (floor2.IsHaveWallAtDirection(Direction.Left))
-//             {
-//                 floors[index].SetWallWithDirection(Direction.Right, floor2.GetWallAtDirection(Direction.Left));
-//             }
-//         }
-//         Floor floor3 = GetFloorConnectWith(floors[index], Direction.Bot);
-//         if (floor3 != null)
-//         {
-//             if (floor3.IsHaveWallAtDirection(Direction.Top))
-//             {
-//                 floors[index].SetWallWithDirection(Direction.Bot, floor3.GetWallAtDirection(Direction.Top));
-//             }
-//         }
-//         Floor floor4 = GetFloorConnectWith(floors[index], Direction.Left);
-//         if (floor4 != null)
-//         {
-//             if (floor4.IsHaveWallAtDirection(Direction.Right))
-//             {
-//                 floors[index].SetWallWithDirection(Direction.Left, floor4.GetWallAtDirection(Direction.Right));
-//             }
-//         }
-//         OnBuildingPlaced?.Invoke(newObject);
-//     }
-//
-//     private void PlaceWall(Vector2Int gridPosition, Direction direction)
-//     {
-//         if (currentHitFloor == null) return;
-//         Vector3 wallPosition = GridToWorldPosition(gridPosition);
-//         Building wallObject = Instantiate(currentSelectedObject.prefab, wallPosition, Quaternion.identity);
-//         wallObject.SetBuildingData(new BuildingData(currentSelectedObject));
-//         currentHitFloor.SetWallWithDirection(direction, wallObject as Wall);
-//         UpdatePreviewPositionAndRotation(direction, wallObject);
-//
-//         //get connected floor at wall direction
-//         Floor connectedFloor = GetFloorConnectWith(currentHitFloor, direction);
-//         if (connectedFloor != null)
-//         {
-//             // Set the wall on the connected floor
-//             connectedFloor.SetWallWithDirection(BuildingExtension.GetOppositeWallDirection(direction),
-//                 wallObject as Wall);
-//         }
-//     }
-//
-//     #endregion
-//
-//     #region Preview Management
-//
-//     private void CreatePreview(Vector2Int gridPosition)
-//     {
-//         if (_previewBuilding != null)
-//         {
-//             Destroy(_previewBuilding);
-//         }
-//
-//         currentPreviewPosition = gridPosition;
-//         _previewBuilding = Instantiate(currentSelectedObject.prefab);
-//         UpdatePreviewTransform();
-//         uiBuildingConfirm.ActiveCanvas(true);
-//         uiBuildingConfirm.UpdatePosition(GridToWorldPosition(currentPreviewPosition));
-//     }
-//
-//     private void UpdatePreviewTransform()
-//     {
-//         if (_previewBuilding != null)
-//         {
-//             _previewBuilding.transform.position = GridToWorldPosition(currentPreviewPosition);
-//         }
-//     }
-//
-//     private void UpdatePreviewPositionAndRotation(Direction dir, Building preview) //adjust postion on hit floor 
-//     {
-//         Vector3 offset = CalculateOffsetAndRotate(dir, out float rotation);
-//         preview.transform.position = GridToWorldPosition(currentPreviewPosition) + offset;
-//         preview.transform.rotation = Quaternion.Euler(0, rotation, 0);
-//     }
-//
-//  
-//
-//     private Vector3 CalculateOffsetAndRotate(Direction dir, out float rotate)
-//     {
-//         float rotation = 0f;
-//         Vector3 offset = Vector3.zero;
-//         switch (dir)
-//         {
-//             case Direction.Top:
-//                 rotation = 90f;
-//                 offset = new Vector3(cellSize / 2, 0, cellSize);
-//                 break;
-//             case Direction.Right:
-//                 rotation = 0;
-//                 offset = new Vector3(cellSize, 0, cellSize / 2);
-//                 break;
-//             case Direction.Bot:
-//                 rotation = 90f;
-//                 offset = new Vector3(cellSize / 2, 0, 0);
-//                 break;
-//             case Direction.Left:
-//                 rotation = 0;
-//                 offset = new Vector3(0, 0, cellSize / 2);
-//                 break;
-//         }
-//
-//         rotate = rotation;
-//         return offset;
-//     }
-//
-//     #endregion
-//
-//     #region Utility Methods
-//
-//     public Vector2Int GetClosestGridPositionFromCharacter()
-//     {
-//         Vector3 characterPos = PlayerControl.Instance.transform.position;
-//         Vector2Int gridPosition = WorldToGridPosition(characterPos);
-//         return new Vector2Int(Mathf.Clamp(gridPosition.x, 0, gridWidth - 1),
-//             Mathf.Clamp(gridPosition.y, 0, gridHeight - 1));
-//     }
-//
-//     public Vector2Int WorldToGridPosition(Vector3 worldPosition)
-//     {
-//         return GridSystemExtension.WorldToGridPosition(worldPosition, gridOrigin, cellSize);
-//     }
-//
-//     Vector3 GridToWorldPosition(Vector2Int gridPosition)
-//     {
-//         return GridSystemExtension.GridToWorldPosition(gridPosition, gridOrigin, cellSize);
-//     }
-//
-//     private bool IsValidGridPosition(Vector2Int gridPosition)
-//     {
-//         return GridSystemExtension.IsValidGridPosition(gridPosition, gridWidth, gridHeight);
-//     }
-//
-//     #endregion
-//
-//     #region GUI and Gizmos
-//
-// #if UNITY_EDITOR
-//     void OnDrawGizmos()
-//     {
-//         if (!showGrid) return;
-//
-//         // Only draw in editor or if application is playing and showGrid is true
-//         if (!Application.isPlaying && !showGrid) return;
-//
-//         Gizmos.color = gridColor;
-//
-//         // Draw horizontal lines
-//         for (int x = 0; x <= gridWidth; x++)
-//         {
-//             Vector3 startPos = gridOrigin + new Vector3(x * cellSize, 0.01f, 0);
-//             Vector3 endPos = gridOrigin + new Vector3(x * cellSize, 0.01f, gridHeight * cellSize);
-//             Gizmos.DrawLine(startPos, endPos);
-//         }
-//
-//         // Draw vertical lines
-//         for (int z = 0; z <= gridHeight; z++)
-//         {
-//             Vector3 startPos = gridOrigin + new Vector3(0, 0.01f, z * cellSize);
-//             Vector3 endPos = gridOrigin + new Vector3(gridWidth * cellSize, 0.01f, z * cellSize);
-//             Gizmos.DrawLine(startPos, endPos);
-//         }
-//
-//         // Optionally highlight occupied cells
-//         if (Application.isPlaying && gridData != null)
-//         {
-//             for (int x = 0; x < gridWidth; x++)
-//             {
-//                 for (int z = 0; z < gridHeight; z++)
-//                 {
-//                     Vector3 cellCenter = gridOrigin + new Vector3((x + 0.5f) * cellSize, 0.02f, (z + 0.5f) * cellSize);
-//
-//                     if (gridData[x, z])
-//                     {
-//                         Gizmos.color = occupiedCellColor; // Color for occupied cells
-//                         Gizmos.DrawCube(cellCenter, new Vector3(cellSize * 0.9f, 0.01f, cellSize * 0.9f));
-//                     }
-//                     else
-//                     {
-//                         Gizmos.color = unoccupiedCellColor; // Color for unoccupied cells
-//                         Gizmos.DrawCube(cellCenter, new Vector3(cellSize * 0.9f, 0.01f, cellSize * 0.9f));
-//                     }
-//                 }
-//             }
-//         }
-//     }
-// #endif
-//
-//     #endregion
-// }
-
 using System;
 using UnityEngine;
+using System.Collections.Generic;
+using UnityEngine.Serialization;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 public class GridSystem : MonoBehaviour
 {
     #region Singleton
+
     public static GridSystem Instance { get; private set; }
 
     private void Awake()
@@ -814,68 +18,142 @@ public class GridSystem : MonoBehaviour
             Instance = this;
         else
             Destroy(gameObject);
-            
+
         InitializeGrid();
     }
+
+    private void Start()
+    {
+        BuildingManager.Instance.OnDone += HandleBakeMesh;
+        UIBuilding.Instance.SwitchEditMode += OnEditMode;
+    }
+
+
+    private void OnEditMode(bool b)
+    {
+        if (b)
+        {
+            foreach (var chunk in chunks)
+            {
+                if (chunk.floorsParent != null)
+                {
+                    foreach (Transform child in chunk.floorsParent.transform)
+                    {
+                        Destroy(child.gameObject);
+                    }
+                }
+
+                if (chunk.wallsParents != null)
+                {
+                    foreach (Transform child in chunk.wallsParents.transform)
+                    {
+                        Destroy(child.gameObject);
+                    }
+                }
+            }
+
+            RecreateWorld();
+        }
+        else
+        {
+            HandleBakeMesh();
+        }
+    }
+
+    private void OnDestroy()
+    {
+        BuildingManager.Instance.OnDone -= HandleBakeMesh;
+        UIBuilding.Instance.SwitchEditMode -= OnEditMode;
+    }
+
     #endregion
 
     #region Properties and Fields
-    [Header("Grid Settings")] 
-    public int gridWidth = 50;
+
+    [Header("Grid Settings")] public int gridWidth = 50;
     public int gridHeight = 50;
     public float cellSize = 1f;
     public Vector3 gridOrigin = Vector3.zero;
 
-    [Header("Gizmos")] 
-    public bool showGrid = true;
-    public Color gridColor = Color.white;
-    public Color occupiedCellColor = Color.red;
-    public Color unoccupiedCellColor = Color.green;
+    [Header("Chunk Settings")] [Header("Chunk Settings")]
+    public int chunkCountX = 3;
 
-    private bool[,] gridData;
-    public event Action<Vector2Int,bool> OnGridCellChanged;
+    public int chunkCountY = 3;
+    private int chunkSizeX;
+
+    private int chunkSizeY;
+
+    // private Dictionary<Vector2Int, Chunk> chunks = new();
+    private Dictionary<Vector2Int, Chunk> chunkDictionary = new Dictionary<Vector2Int, Chunk>();
+
+
+    public List<Chunk> chunks = new();
+    [Header("Chunk Gizmos")] public bool showChunks = true;
+    public Color chunkGizmoColor = new Color(0, 0.5f, 1f, 0.3f);
+    public event Action<Vector2Int, bool> OnGridCellChanged;
+
     #endregion
 
     private void InitializeGrid()
     {
-        gridData = new bool[gridWidth, gridHeight];
+        chunkSizeX = Mathf.CeilToInt((float)gridWidth / chunkCountX);
+        chunkSizeY = Mathf.CeilToInt((float)gridHeight / chunkCountY);
+        chunks.Clear();
+
+        for (int y = 0; y < chunkCountY; y++)
+        {
+            for (int x = 0; x < chunkCountX; x++)
+            {
+                Vector2Int chunkCoord = new Vector2Int(x, y);
+                Chunk newChunk = new Chunk(chunkCoord, chunkSizeX, chunkSizeY);
+                chunks.Add(newChunk);
+            }
+        }
     }
 
+
     #region Grid Cell Management
+
     public bool IsCellOccupied(Vector2Int gridPosition)
     {
-        if (!IsValidGridPosition(gridPosition))
-            return true;
-            
-        return gridData[gridPosition.x, gridPosition.y];
+        if (TryGetChunk(gridPosition, out Chunk chunk, out Vector2Int localPos))
+        {
+            return chunk.IsCellOccupied(localPos);
+        }
+
+        return true;
     }
-    
-    // public bool IsCellOccupied(Vector2Int gridPosition, Vector2Int gridSize)
-    // {
-    //     for (int x = 0; x < gridSize.x; x++)
-    //     {
-    //         for (int y = 0; y < gridSize.y; y++)
-    //         {
-    //             Vector2Int checkPos = gridPosition + new Vector2Int(x, y);
-    //             if (!IsValidGridPosition(checkPos) || gridData[checkPos.x, checkPos.y])
-    //             {
-    //                 return true;
-    //             }
-    //         }
-    //     }
-    //     return false;
-    // }
+
+
+    public Floor GetFloorAt(Vector2Int gridPosition)
+    {
+        if (TryGetChunk(gridPosition, out Chunk chunk, out Vector2Int localPos))
+        {
+            return chunk.GetCell(localPos);
+        }
+
+        return null;
+    }
+
+    public void SetFloorAt(Vector2Int gridPosition, Floor floor, GameObject g)
+    {
+        if (TryGetChunk(gridPosition, out Chunk chunk, out Vector2Int localPos))
+        {
+            chunk.SetCell(localPos, floor, g);
+            OnGridCellChanged?.Invoke(gridPosition, floor != null);
+        }
+    }
 
     public bool CanPlaceObject(Vector2Int gridPosition)
     {
         return !IsCellOccupied(gridPosition);
     }
-    
+
     public Vector3 GridPosToWorldPosition(Vector2Int gridPosition)
     {
         return gridOrigin + new Vector3(gridPosition.x * cellSize, 0, gridPosition.y * cellSize);
     }
-    
+
     public Vector2Int IndexToGridPosition(int index)
     {
         if (index < 0 || index >= gridWidth * gridHeight)
@@ -886,27 +164,37 @@ public class GridSystem : MonoBehaviour
         return new Vector2Int(x, y);
     }
 
+
     public void MarkGridCells(Vector2Int gridPosition, Vector2Int gridSize, bool isOccupied)
     {
+        // This is now deprecated but kept for compatibility
         for (int x = 0; x < gridSize.x; x++)
         {
             for (int y = 0; y < gridSize.y; y++)
             {
                 Vector2Int cellPos = gridPosition + new Vector2Int(x, y);
-                if (IsValidGridPosition(cellPos))
+                if (TryGetChunk(cellPos, out Chunk chunk, out Vector2Int localPos))
                 {
-                    OnGridCellChanged?.Invoke(cellPos, isOccupied);
-                    gridData[cellPos.x, cellPos.y] = isOccupied;
+                    // if (!isOccupied)
+                    // {
+                    //     chunk.SetCell(localPos, null);
+                    // }
                 }
             }
         }
     }
+
     #endregion
 
     #region Grid Coordinate Conversion
+
     public Vector2Int WorldToGridPosition(Vector3 worldPosition)
     {
-        return GridSystemExtension.WorldToGridPosition(worldPosition, gridOrigin, cellSize);
+        //debug which chunk is being used
+        Vector3 localPosition = worldPosition - gridOrigin;
+        int x = Mathf.FloorToInt(localPosition.x / cellSize);
+        int z = Mathf.FloorToInt(localPosition.z / cellSize);
+        return new Vector2Int(x, z);
     }
 
     public Vector3 GridToWorldPosition(Vector2Int gridPosition)
@@ -918,53 +206,347 @@ public class GridSystem : MonoBehaviour
     {
         return GridSystemExtension.IsValidGridPosition(gridPosition, gridWidth, gridHeight);
     }
+
+    public void SetWallWithDirection(Vector2Int gridPosition, Direction direction, GameObject g,BuildID id)
+    {
+        if (TryGetChunk(gridPosition, out Chunk chunk, out Vector2Int localPos))
+        {
+            chunk.SetWallWithDirection(localPos, direction, g,id);
+        }
+    }
+
+
+    private bool TryGetChunk(Vector2Int gridPos, out Chunk chunk, out Vector2Int localPos) //list instead of dictionary
+    {
+        if (!IsValidGridPosition(gridPos))
+        {
+            chunk = null;
+            localPos = Vector2Int.zero;
+            return false;
+        }
+
+        Vector2Int chunkCoord = new Vector2Int(gridPos.x / chunkSizeX, gridPos.y / chunkSizeY);
+        localPos = new Vector2Int(gridPos.x % chunkSizeX, gridPos.y % chunkSizeY);
+
+        int index = GetChunkIndex(chunkCoord);
+        if (index >= 0 && index < chunks.Count)
+        {
+            chunk = chunks[index];
+            return true;
+        }
+
+        chunk = null;
+        return false;
+    }
+
+    private int GetChunkIndex(Vector2Int chunkCoord)
+    {
+        if (chunkCoord.x < 0 || chunkCoord.x >= chunkCountX ||
+            chunkCoord.y < 0 || chunkCoord.y >= chunkCountY)
+            return -1;
+
+        return chunkCoord.y * chunkCountX + chunkCoord.x;
+    }
+
+
+    private void OnDrawGizmos()
+    {
+        if (!showChunks || chunks == null) return;
+        foreach (var chunk in chunks)
+        {
+            Vector2Int chunkCoord = chunk.chunkCoord;
+
+            Vector3 chunkOrigin = gridOrigin + new Vector3(chunkCoord.x * chunkSizeX * cellSize, 0,
+                chunkCoord.y * chunkSizeY * cellSize);
+            Vector3 size = new Vector3(chunkSizeX * cellSize, 0.1f, chunkSizeY * cellSize);
+            Vector3 center = chunkOrigin + size / 2f;
+
+            Gizmos.color = new Color(chunkGizmoColor.r, chunkGizmoColor.g, chunkGizmoColor.b, 0.1f);
+            Gizmos.DrawCube(center, size * 0.98f);
+
+            Gizmos.color = chunkGizmoColor;
+            Gizmos.DrawWireCube(center, size);
+
+#if UNITY_EDITOR
+            GUIStyle labelStyle = new GUIStyle
+            {
+                normal = new GUIStyleState { textColor = Color.white },
+                fontSize = 20,
+                alignment = TextAnchor.MiddleCenter
+            };
+
+            Handles.Label(center + Vector3.up * 0.5f, $"Chunk {chunkCoord.x},{chunkCoord.y}", labelStyle);
+#endif
+        }
+    }
+
     #endregion
 
-    #region Gizmos
-    void OnDrawGizmos()
+    #region Recreate GameObject Base On Chunk Data
+
+    [ContextMenu("Re Create")]
+    public void RecreateWorld()
     {
-        if (!showGrid) return;
-
-        Gizmos.color = gridColor;
-
-        // Draw horizontal lines
-        for (int x = 0; x <= gridWidth; x++)
+        foreach (Chunk chunk in chunks)
         {
-            Vector3 startPos = gridOrigin + new Vector3(x * cellSize, 0.01f, 0);
-            Vector3 endPos = gridOrigin + new Vector3(x * cellSize, 0.01f, gridHeight * cellSize);
-            Gizmos.DrawLine(startPos, endPos);
-        }
-
-        // Draw vertical lines
-        for (int z = 0; z <= gridHeight; z++)
-        {
-            Vector3 startPos = gridOrigin + new Vector3(0, 0.01f, z * cellSize);
-            Vector3 endPos = gridOrigin + new Vector3(gridWidth * cellSize, 0.01f, z * cellSize);
-            Gizmos.DrawLine(startPos, endPos);
-        }
-
-        // Draw cell occupancy state
-        if (Application.isPlaying && gridData != null)
-        {
-            for (int x = 0; x < gridWidth; x++)
+            if (chunk.floorsParent == null)
             {
-                for (int z = 0; z < gridHeight; z++)
-                {
-                    Vector3 cellCenter = gridOrigin + new Vector3((x + 0.5f) * cellSize, 0.02f, (z + 0.5f) * cellSize);
+                chunk.floorsParent = new GameObject($"Floor_{chunk.chunkCoord.x}_{chunk.chunkCoord.y}");
+                chunk.floorsParent.transform.SetParent(transform);
+            }
 
-                    if (gridData[x, z])
+            foreach (Transform child in chunk.floorsParent.transform)
+            {
+                Destroy(child.gameObject);
+            }
+
+            // Loop through all cells in the chunk
+            for (int x = 0; x < chunkSizeX; x++)
+            {
+                for (int y = 0; y < chunkSizeY; y++)
+                {
+                    Vector2Int localPos = new Vector2Int(x, y);
+                    Floor floor = chunk.GetCell(localPos);
+
+
+                    if (floor != null && floor.buildID != BuildID.None)
                     {
-                        Gizmos.color = occupiedCellColor;
-                        Gizmos.DrawCube(cellCenter, new Vector3(cellSize * 0.9f, 0.01f, cellSize * 0.9f));
-                    }
-                    else
-                    {
-                        Gizmos.color = unoccupiedCellColor;
-                        Gizmos.DrawCube(cellCenter, new Vector3(cellSize * 0.9f, 0.01f, cellSize * 0.9f));
+                        Vector2Int globalPos = chunk.chunkCoord * new Vector2Int(chunkSizeX, chunkSizeY) + localPos;
+                        Vector3 worldPos = GridToWorldPosition(globalPos);
+                        GameObject floorObj =
+                            Instantiate(GameManager.Instance.GetBuildingDataByID(floor.buildID).prefab, worldPos,
+                                Quaternion.identity);
+                        EditBuilding editBuilding = floorObj.AddComponent<EditBuilding>();
+                        editBuilding.SetBuildID(floor.buildID);
+                        floorObj.transform.SetParent(chunk.floorsParent.transform);
+
+                        for (int dirInt = 0; dirInt < 4; dirInt++)
+                        {
+                            Direction direction = (Direction)(1 << dirInt); // Convert to actual Direction enum values
+                            if (floor.IsHaveWallAtDirection(direction))
+                            {
+                                Vector3 offset = CalculateOffsetAndRotate(direction, out float rotate);
+                                GameObject wallObj = Instantiate(
+                                    GameManager.Instance.GetBuildingDataByID(BuildID.Wall).prefab,
+                                    worldPos + offset, // Position adjusted with offset
+                                    Quaternion.Euler(0, rotate, 0), // Rotation based on direction
+                                    chunk.floorsParent.transform); // Parent to the chunk
+                                wallObj.transform.SetParent(chunk.wallsParents.transform);
+                                EditBuilding e = wallObj.AddComponent<EditBuilding>();
+                                e.SetBuildID(BuildID.Wall);
+                            }
+                        }
                     }
                 }
             }
         }
+
+        Debug.Log("World recreation completed.");
     }
+
+    private Vector3 CalculateOffsetAndRotate(Direction dir, out float rotate)
+    {
+        float rotation = 0f;
+        Vector3 offset = Vector3.zero;
+        float cellSize = GridSystem.Instance.cellSize;
+
+        switch (dir)
+        {
+            case Direction.Top:
+                rotation = 90f;
+                offset = new Vector3(cellSize / 2, 0, cellSize);
+                break;
+            case Direction.Right:
+                rotation = 0;
+                offset = new Vector3(cellSize, 0, cellSize / 2);
+                break;
+            case Direction.Bot:
+                rotation = 90f;
+                offset = new Vector3(cellSize / 2, 0, 0);
+                break;
+            case Direction.Left:
+                rotation = 0;
+                offset = new Vector3(0, 0, cellSize / 2);
+                break;
+        }
+
+        rotate = rotation;
+        return offset;
+    }
+
     #endregion
+
+    private void HandleBakeMesh()
+    {
+        for (int i = 0; i < chunks.Count; i++)
+        {
+            // Process floors
+            if (chunks[i].floorsParent != null)
+            {
+                if (chunks[i].NeedRebuild)
+                {
+                    CombineMeshes(chunks[i].floorsParent);
+                    CombineMeshes(chunks[i].wallsParents);
+                }
+                else
+                {
+                    Debug.Log($"Chunk {chunks[i].chunkCoord} does not need rebuild.");
+                }
+
+                chunks[i].NeedRebuild = false;
+            }
+        }
+    }
+
+    private void CombineMeshes(GameObject parent)
+    {
+        if (parent == null)
+        {
+            return;
+        }
+
+        // Get all child mesh filters
+        MeshFilter[] meshFilters = parent.GetComponentsInChildren<MeshFilter>();
+        if (meshFilters.Length == 0)
+        {
+            return;
+        }
+
+        Material material = null;
+        foreach (MeshRenderer renderer in parent.GetComponentsInChildren<MeshRenderer>())
+        {
+            if (renderer.sharedMaterial != null)
+            {
+                material = renderer.sharedMaterial;
+                break;
+            }
+        }
+
+        if (material == null)
+        {
+            return;
+        }
+
+        List<CombineInstance> validInstances = new List<CombineInstance>();
+
+        // Fill the combine instances
+        foreach (MeshFilter mf in meshFilters)
+        {
+            if (mf.sharedMesh == null)
+                continue;
+
+            CombineInstance instance = new CombineInstance
+            {
+                mesh = mf.sharedMesh,
+                transform = mf.transform.localToWorldMatrix
+            };
+            validInstances.Add(instance);
+        }
+
+        if (validInstances.Count == 0)
+        {
+            return;
+        }
+
+        // Create new GameObject inside parent
+        GameObject combinedObject = new GameObject("CombinedMesh");
+        combinedObject.transform.SetParent(parent.transform);
+        combinedObject.transform.localPosition = Vector3.zero;
+        combinedObject.transform.localRotation = Quaternion.identity;
+        combinedObject.transform.localScale = Vector3.one;
+
+        MeshFilter combinedMeshFilter = combinedObject.AddComponent<MeshFilter>();
+        MeshRenderer combinedRenderer = combinedObject.AddComponent<MeshRenderer>();
+
+        // Combine meshes
+        Mesh combinedMesh = new Mesh
+        {
+            indexFormat = UnityEngine.Rendering.IndexFormat.UInt32
+        };
+        combinedMesh.CombineMeshes(validInstances.ToArray(), true, true);
+
+        if (combinedMesh.vertexCount == 0)
+        {
+            return;
+        }
+
+        combinedMeshFilter.sharedMesh = combinedMesh;
+        combinedRenderer.sharedMaterial = material;
+        //cast shadow off, receive shadow off
+        combinedRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        combinedRenderer.receiveShadows = false;
+
+        // Destroy old children
+        List<GameObject> childrenToDestroy = new List<GameObject>();
+        foreach (Transform child in parent.transform)
+        {
+            if (child.gameObject != combinedObject)
+            {
+                childrenToDestroy.Add(child.gameObject);
+            }
+        }
+
+        foreach (GameObject child in childrenToDestroy)
+        {
+            DestroyImmediate(child);
+        }
+
+        // Add MeshCollider
+        MeshCollider collider = combinedObject.AddComponent<MeshCollider>();
+        collider.sharedMesh = combinedMesh;
+    }
+
+
+    [Serializable]
+    public class Chunk
+    {
+        public Vector2Int chunkCoord;
+        public Floor[,] data;
+        public Floor[] floors;
+        public GameObject floorsParent;
+        public GameObject wallsParents;
+        public bool NeedRebuild = false;
+        //mesh bake setting 
+
+        public Chunk(Vector2Int coord, int sizeX, int sizeY)
+        {
+            floorsParent = new GameObject($"Floor_{coord.x}_{coord.y}");
+            wallsParents = new GameObject($"Wall_{coord.x}_{coord.y}");
+            chunkCoord = coord;
+            data = new Floor[sizeX, sizeY];
+            floors = new Floor[sizeX * sizeY];
+        }
+
+        public Floor GetCell(Vector2Int localPos)
+        {
+            return data[localPos.x, localPos.y];
+        }
+
+        public void SetCell(Vector2Int localPos, Floor floor, GameObject g)
+        {
+            data[localPos.x, localPos.y] = floor;
+            int index = localPos.x + localPos.y * 5; //assuming chunk size is 5x5
+            floors[index] = floor;
+            g.transform.SetParent(floorsParent.transform);
+            NeedRebuild = true;
+        }
+
+        public bool IsCellOccupied(Vector2Int localPos)
+        {
+            return data[localPos.x, localPos.y] != null;
+        }
+
+        public void SetWallWithDirection(Vector2Int localPos, Direction d, GameObject g,BuildID id)
+        {
+            if (data[localPos.x, localPos.y] == null)
+            {
+                Debug.LogWarning("Cannot set wall on an empty cell.");
+                return;
+            }
+
+            data[localPos.x, localPos.y].SetWall(d,id);
+            g.transform.SetParent(wallsParents.transform);
+            NeedRebuild = true;
+        }
+    }
 }

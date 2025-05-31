@@ -25,14 +25,14 @@ Material:
     m_TexEnvs: []
     m_Ints: []
     m_Floats:
-    - _GridHeight: 50
+    - _GridHeight: 10
     - _GridOriginX: 0
     - _GridOriginZ: 0
     - _GridSize: 1
-    - _GridWidth: 50
+    - _GridWidth: 10
     - _HighlightIntensity: 0.5
     - _LineThickness: 0.0053
-    - _ShowGrid: 1
+    - _ShowGrid: 0
     - _UseOccupancyData: 0.448
     m_Colors:
     - _Color: {r: 0.09999991, g: 0.09999991, b: 0.09999991, a: 0}

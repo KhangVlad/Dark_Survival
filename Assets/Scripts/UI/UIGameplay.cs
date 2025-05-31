@@ -30,12 +30,12 @@ public class UIGameplay : MonoBehaviour
         {
             // Normal mode -> enter building selection
             CanvasController.Instance.ActiveBuildingCanvas(true);
-            UIBuilding.Instance.ActiveCanvas(true);
         }
         else
         {
             UIBuilding.Instance.CancelEditMode();
             CanvasController.Instance.ActiveBuildingCanvas(false);
+            CanvasController.Instance.SetActiveGameplayCanvas(true);
         }
     }
 
@@ -50,11 +50,21 @@ public class UIGameplay : MonoBehaviour
 
     public void SetActiveCanvas(bool active)
     {
+       
+        if (active)
+        {
+            Debug.Log("Gameplay canvas is enabled");
+        }
+        else
+        {
+            Debug.Log("Gameplay canvas is disabled");
+        }
         _canvas.enabled = active;
     }
 
     private void SwitchEditMode(bool isEditMode)
     {
+        
         this.IsEditMode = isEditMode;
         if (isEditMode)
         {
@@ -65,6 +75,5 @@ public class UIGameplay : MonoBehaviour
             buildBtn.image.sprite = normalIcon; // Change back to normal icon
         }
 
-        SetActiveCanvas(true); // Make sure gameplay UI is visible
     }
 }
