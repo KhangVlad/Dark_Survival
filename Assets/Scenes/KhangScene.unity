@@ -1068,7 +1068,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   gridWidth: 10
   gridHeight: 10
-  cellSize: 1
+  cellSize: 1.5
   gridOrigin: {x: 0, y: 0, z: 0}
   chunkCountX: 2
   chunkCountY: 2

@@ -26,4 +26,16 @@ using UnityEngine;
                 _ => Direction.None // Invalid direction
             };
         }
+        
+        public static Direction GetWallDirectionByIndex(int wallIndex)
+        {
+            return wallIndex switch
+            {
+                0 => Direction.Top,
+                1 => Direction.Right,
+                2 => Direction.Bot,
+                3 => Direction.Left,
+                _ => Direction.None // Invalid index
+            };
+        }
     }

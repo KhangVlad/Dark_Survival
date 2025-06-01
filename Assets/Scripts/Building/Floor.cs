@@ -17,31 +17,20 @@ public enum Direction
 public class Floor : Building
 {
     public BuildingWithDirection[] buildingWithDirection;
+
     // public Direction coveredDirections = Direction.None;
     public Vector2Int gridPos;
 
-    public void SetWall(Direction direction,BuildID id)
+    public void SetWall(Direction direction, BuildID id)
     {
         if (!GridSystemExtension.IsValidGridPosition(gridPos, GridSystem.Instance.gridWidth,
                 GridSystem.Instance.gridHeight))
         {
             return;
         }
+        //none means no wall, so we can set it
 
-        // if (direction == Direction.None || direction == Direction.All)
-        // {
-        //     Debug.LogWarning("Invalid direction for setting a wall.");
-        //     return;
-        // }
-        //
-        // coveredDirections |= direction;
-        
         int index = BuildingExtension.GetWallDirectionIndex(direction);
-        if (index < 0 || index >= buildingWithDirection.Length)
-        {
-            Debug.LogError("Invalid direction index: " + index);
-            return;
-        }
         buildingWithDirection[index] = new BuildingWithDirection();
         buildingWithDirection[index].SetBuilding(id);
     }
@@ -49,40 +38,39 @@ public class Floor : Building
 
     public bool IsDirectionCovered(Direction direction)
     {
-        // return (coveredDirections & direction) != 0;
         int index = BuildingExtension.GetWallDirectionIndex(direction);
-        if (index < 0 || index >= buildingWithDirection.Length)
-        {
-            Debug.LogError("Invalid direction index: " + index);
-            return false;
-        }
         return buildingWithDirection[index].ID != BuildID.None;
     }
 
-
     public bool IsDestroyAble()
     {
-        // return coveredDirections == Direction.None;
         foreach (BuildingWithDirection building in buildingWithDirection)
         {
             if (building.ID != BuildID.None)
             {
-                return false;
+                return false; // Can't destroy if any wall exists
             }
         }
+
         return true;
     }
 
     public bool IsWallAvailable()
     {
-        // return coveredDirections != Direction.All;
         foreach (BuildingWithDirection building in buildingWithDirection)
         {
+            if (building == null)
+            {
+                Debug.LogError("BuildingWithDirection is null in Floor.");
+                continue;
+            }
+
             if (building.ID == BuildID.None)
             {
                 return true;
             }
         }
+
         return false;
     }
 
@@ -106,10 +94,6 @@ public class Floor : Building
         return IsDirectionCovered(direction);
     }
 
-    public Floor()
-    {
-        buildID = BuildID.None;
-    }
 
     public Floor(BuildID buildID)
     {
@@ -117,6 +101,10 @@ public class Floor : Building
         // coveredDirections = Direction.None;
         buildingWithDirection =
             new BuildingWithDirection[4]; // Initialize with 4 directions, index 0 = Top, 1 = Right, 2 = Bot, 3 = Left
+        for (int i = 0; i < buildingWithDirection.Length; i++)
+        {
+            buildingWithDirection[i] = new BuildingWithDirection();
+        }
     }
 }
 

@@ -36,6 +36,7 @@ public class UIBuilding : MonoBehaviour
     
     private void SwitchEditModeHandler(bool isEditMode)
     {
+        Debug.Log($"Switching edit mode: {isEditMode}");
         if (isEditMode)
         {
             SwitchEditMode?.Invoke(true);

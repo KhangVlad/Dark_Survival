@@ -1,7 +1,7 @@
 
     using UnityEngine;
 
-    public class EditBuilding : MonoBehaviour
+    public abstract class BuildBehaviour : MonoBehaviour
     {
         public BuildID buildID;
         
@@ -10,4 +10,8 @@
             buildID = newBuildID;
         }
         
+        
+        public abstract void DeleteBuilding();
+        
+        public abstract void InteractWithBuilding();
     }

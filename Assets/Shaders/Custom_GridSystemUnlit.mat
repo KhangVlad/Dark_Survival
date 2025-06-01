@@ -28,12 +28,12 @@ Material:
     - _GridHeight: 10
     - _GridOriginX: 0
     - _GridOriginZ: 0
-    - _GridSize: 1
+    - _GridSize: 1.5
     - _GridWidth: 10
     - _HighlightIntensity: 0.5
     - _LineThickness: 0.0053
     - _ShowGrid: 0
-    - _UseOccupancyData: 0.448
+    - _UseOccupancyData: 0.357
     m_Colors:
     - _Color: {r: 0.09999991, g: 0.09999991, b: 0.09999991, a: 0}
     - _GridColor: {r: 1, g: 1, b: 1, a: 1}
