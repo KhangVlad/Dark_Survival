@@ -202,16 +202,31 @@ public class BuildingManager : MonoBehaviour
 
         Floor f = GetFloorConnectWith(currentHitFloor, direction);
         if (currentHitFloor.IsDirectionCovered(direction)) return;
-        if (f != null && f.IsHaveWallAtDirection(BuildingExtension.GetOppositeWallDirection(direction))) return;
-
+        
+        // if (f != null && f.IsHaveWallAtDirection(BuildingExtension.GetOppositeWallDirection(direction))) return;
+        //
+        // previousDirection = direction;
+        // UpdatePreviewPositionAndRotation(direction, _previewBuilding);
+        //
+        // // Update UI position
+        // if (uiBuildingConfirm != null && uiBuildingConfirm.gameObject.activeSelf)
+        // {
+        //     uiBuildingConfirm.UpdatePosition(GridSystem.Instance.GridToWorldPosition(gridPosition));
+        // }
+        
+        //f null is fine 
         previousDirection = direction;
-        UpdatePreviewPositionAndRotation(direction, _previewBuilding);
-
-        // Update UI position
-        if (uiBuildingConfirm != null && uiBuildingConfirm.gameObject.activeSelf)
+        if (f != null)
         {
-            uiBuildingConfirm.UpdatePosition(GridSystem.Instance.GridToWorldPosition(gridPosition));
+            
+            if (f.IsHaveWallAtDirection(BuildingExtension.GetOppositeWallDirection(direction)))
+            {
+                return;
+            }
         }
+        
+        UpdatePreviewPositionAndRotation(direction, _previewBuilding);
+        uiBuildingConfirm.UpdatePosition(GridSystem.Instance.GridToWorldPosition(gridPosition));
     }
 
     private Floor GetFloorAtGridPosition(Vector2Int gridPosition)
