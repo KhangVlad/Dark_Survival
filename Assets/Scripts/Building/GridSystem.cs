@@ -204,6 +204,18 @@ public class GridSystem : MonoBehaviour
             }
         }
     }
+    
+    public Vector3 GetWorldPositionFromChunk(Vector2Int chunkCoord, Vector2Int localPos)
+    {
+        if (chunkLookup.TryGetValue(chunkCoord, out int index) && index >= 0 && index < chunks.Count)
+        {
+            Chunk chunk = chunks[index];
+            return GridSystemExtension.GridToWorldPosition(
+                new Vector2Int(chunkCoord.x * chunkSizeX + localPos.x, chunkCoord.y * chunkSizeY + localPos.y),
+                gridOrigin, cellSize);
+        }
+        return Vector3.zero;
+    }
 
     #endregion
 

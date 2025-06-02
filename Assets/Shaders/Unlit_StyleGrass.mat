@@ -40,7 +40,7 @@ Material:
     - _FlowerSize: 0.088
     - _FlowerSizeVariation: 1
     - _RandomRotation: 0
-    - _RandomSeed: 4.05
+    - _RandomSeed: 5.07
     - _RotationMax: 180
     - _SwayAmount: 0.0241
     - _SwaySpeed: 1.87

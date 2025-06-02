@@ -1168,11 +1168,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 75cad443a40f484ebd20facfd80b3e68, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  bakedFloorMeshPrefab: {fileID: 8076553634286879440, guid: 2dbd14ea29711499c94a35d4e1e3747b,
-    type: 3}
-  floorMaterial: {fileID: 6892232844440235036, guid: f429065a18003405abe221b3e8ee7853,
-    type: 3}
-  useCombinedMesh: 1
 --- !u!1 &633271666
 GameObject:
   m_ObjectHideFlags: 0
@@ -1354,8 +1349,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4ca2effd24aa4fbc9aa5edf69e630c6d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  buildingMeshSettings: []
-  tempGameObject: {fileID: 0}
 --- !u!4 &723308053
 Transform:
   m_ObjectHideFlags: 0
@@ -1366,6 +1359,53 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0.9862964, y: -0.15313953, z: -0.548295}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &772617693
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 772617695}
+  - component: {fileID: 772617694}
+  m_Layer: 0
+  m_Name: GameResourceManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &772617694
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 772617693}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1755c0918f7143d3b423f39ef5fea9da, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  resourcePool: {fileID: 11400000, guid: b57986e298e8e43d1b83b5943cb55db8, type: 2}
+  worldSeed: 55555
+  spawnChancePerCell: 0.1
+--- !u!4 &772617695
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 772617693}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 2.245868, y: 1.1229587, z: 2.4684527}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1927,6 +1967,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1755c0918f7143d3b423f39ef5fea9da, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  resourcePool: {fileID: 0}
+  worldSeed: 12345
+  spawnChancePerCell: 0.1
 --- !u!1 &1172295207
 GameObject:
   m_ObjectHideFlags: 0
@@ -2476,8 +2519,8 @@ Transform:
   m_GameObject: {fileID: 1433316546}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 2, y: 2, z: 2}
+  m_LocalPosition: {x: -3, y: 0, z: 3}
+  m_LocalScale: {x: 3, y: 3, z: 3}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 1080012307}
@@ -6786,3 +6829,4 @@ SceneRoots:
   - {fileID: 723308053}
   - {fileID: 2055248827}
   - {fileID: 469601911}
+  - {fileID: 772617695}
