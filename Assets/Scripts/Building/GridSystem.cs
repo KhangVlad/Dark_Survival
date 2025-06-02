@@ -1,7 +1,6 @@
 using System;
 using UnityEngine;
 using System.Collections.Generic;
-using UnityEngine.Serialization;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -22,11 +21,6 @@ public class GridSystem : MonoBehaviour
         InitializeGrid();
     }
 
-    // private void Start()
-    // {
-    //     BuildingManager.Instance.OnDone += HandleBakeMesh;
-    //     UIBuilding.Instance.SwitchEditMode += OnEditMode;
-    // }
     private void Start()
     {
         BuildingManager.Instance.OnDone += HandleBakeMesh;
@@ -40,30 +34,11 @@ public class GridSystem : MonoBehaviour
         }
     }
 
-
-    private void OnEditMode(bool b)
+    private void OnEditMode(bool isEditMode)
     {
-        if (b)
+        if (isEditMode)
         {
-            foreach (var chunk in chunks)
-            {
-                if (chunk.floorsParent != null)
-                {
-                    foreach (Transform child in chunk.floorsParent.transform)
-                    {
-                        Destroy(child.gameObject);
-                    }
-                }
-
-                if (chunk.wallsParents != null)
-                {
-                    foreach (Transform child in chunk.wallsParents.transform)
-                    {
-                        Destroy(child.gameObject);
-                    }
-                }
-            }
-
+            ClearChunks();
             RecreateWorld();
         }
         else
@@ -72,36 +47,61 @@ public class GridSystem : MonoBehaviour
         }
     }
 
+    private void ClearChunks()
+    {
+        foreach (var chunk in chunks)
+        {
+            ClearChunkObjects(chunk.floorsParent);
+            ClearChunkObjects(chunk.wallsParents);
+        }
+    }
+
+    private void ClearChunkObjects(GameObject parent)
+    {
+        if (parent != null)
+        {
+            foreach (Transform child in parent.transform)
+            {
+                Destroy(child.gameObject);
+            }
+        }
+    }
+
     private void OnDestroy()
     {
-        BuildingManager.Instance.OnDone -= HandleBakeMesh;
-        UIBuilding.Instance.SwitchEditMode -= OnEditMode;
+        if (BuildingManager.Instance != null)
+            BuildingManager.Instance.OnDone -= HandleBakeMesh;
+
+        if (UIBuilding.Instance != null)
+            UIBuilding.Instance.SwitchEditMode -= OnEditMode;
     }
 
     #endregion
 
     #region Properties and Fields
 
-    [Header("Grid Settings")] public int gridWidth = 50;
-    public int gridHeight = 50;
-    public float cellSize = 1f;
-    public Vector3 gridOrigin = Vector3.zero;
+    [Header("Grid Settings")] [SerializeField]
+    private int gridWidth = 50;
+    public int GridSizeX => gridWidth;
+    public int GridHeight => gridHeight;
 
-    [Header("Chunk Settings")] [Header("Chunk Settings")]
-    public int chunkCountX = 3;
+    [SerializeField] private int gridHeight = 50;
+    public int GridWidth => gridWidth;
+    [SerializeField] private float cellSize = 1f;
+    public float CellSize => cellSize;
+    [SerializeField] private Vector3 gridOrigin = Vector3.zero;
 
-    public int chunkCountY = 3;
+    [Header("Chunk Settings")] public int chunkCountX = 3;
+    [SerializeField] private int chunkCountY = 3;
     private int chunkSizeX;
-
     private int chunkSizeY;
 
-    // private Dictionary<Vector2Int, Chunk> chunks = new();
-    private Dictionary<Vector2Int, Chunk> chunkDictionary = new Dictionary<Vector2Int, Chunk>();
+    public List<Chunk> chunks = new List<Chunk>();
+    private Dictionary<Vector2Int, int> chunkLookup = new Dictionary<Vector2Int, int>();
 
-
-    public List<Chunk> chunks = new();
     [Header("Chunk Gizmos")] public bool showChunks = true;
     public Color chunkGizmoColor = new Color(0, 0.5f, 1f, 0.3f);
+
     public event Action<Vector2Int, bool> OnGridCellChanged;
 
     #endregion
@@ -111,6 +111,7 @@ public class GridSystem : MonoBehaviour
         chunkSizeX = Mathf.CeilToInt((float)gridWidth / chunkCountX);
         chunkSizeY = Mathf.CeilToInt((float)gridHeight / chunkCountY);
         chunks.Clear();
+        chunkLookup.Clear();
 
         for (int y = 0; y < chunkCountY; y++)
         {
@@ -118,11 +119,12 @@ public class GridSystem : MonoBehaviour
             {
                 Vector2Int chunkCoord = new Vector2Int(x, y);
                 Chunk newChunk = new Chunk(chunkCoord, chunkSizeX, chunkSizeY);
+                int index = chunks.Count;
                 chunks.Add(newChunk);
+                chunkLookup[chunkCoord] = index;
             }
         }
     }
-
 
     #region Grid Cell Management
 
@@ -136,12 +138,11 @@ public class GridSystem : MonoBehaviour
         return true;
     }
 
-
     public Floor GetFloorAt(Vector2Int gridPosition, out int index)
     {
         if (TryGetChunk(gridPosition, out Chunk chunk, out Vector2Int localPos))
         {
-            index = localPos.x + localPos.y * chunkSizeX; // Assuming chunk size is chunkSizeX x chunkSizeY
+            index = localPos.x + localPos.y * chunkSizeX;
             return chunk.GetCell(localPos);
         }
 
@@ -153,57 +154,13 @@ public class GridSystem : MonoBehaviour
     {
         if (TryGetChunk(gridPosition, out Chunk chunk, out Vector2Int localPos))
         {
-            chunk.SetCell(localPos, floor, g);
+            chunk.SetCell(localPos, floor, g, chunkSizeX);
         }
     }
 
     public bool CanPlaceObject(Vector2Int gridPosition)
     {
         return !IsCellOccupied(gridPosition);
-    }
-
-    public Vector3 GridPosToWorldPosition(Vector2Int gridPosition)
-    {
-        return gridOrigin + new Vector3(gridPosition.x * cellSize, 0, gridPosition.y * cellSize);
-    }
-
-
-    public void MarkGridCells(Vector2Int gridPosition, Vector2Int gridSize, bool isOccupied)
-    {
-        // This is now deprecated but kept for compatibility
-        for (int x = 0; x < gridSize.x; x++)
-        {
-            for (int y = 0; y < gridSize.y; y++)
-            {
-                Vector2Int cellPos = gridPosition + new Vector2Int(x, y);
-                if (TryGetChunk(cellPos, out Chunk chunk, out Vector2Int localPos))
-                {
-                }
-            }
-        }
-    }
-
-    #endregion
-
-    #region Grid Coordinate Conversion
-
-    public Vector2Int WorldToGridPosition(Vector3 worldPosition)
-    {
-        //debug which chunk is being used
-        Vector3 localPosition = worldPosition - gridOrigin;
-        int x = Mathf.FloorToInt(localPosition.x / cellSize);
-        int z = Mathf.FloorToInt(localPosition.z / cellSize);
-        return new Vector2Int(x, z);
-    }
-
-    public Vector3 GridToWorldPosition(Vector2Int gridPosition)
-    {
-        return GridSystemExtension.GridToWorldPosition(gridPosition, gridOrigin, cellSize);
-    }
-
-    public bool IsValidGridPosition(Vector2Int gridPosition)
-    {
-        return GridSystemExtension.IsValidGridPosition(gridPosition, gridWidth, gridHeight);
     }
 
     public void SetWallWithDirection(Vector2Int gridPosition, Direction direction, GameObject g, BuildID id)
@@ -213,164 +170,6 @@ public class GridSystem : MonoBehaviour
             chunk.SetWallWithDirection(localPos, direction, g, id);
         }
     }
-
-
-    private bool TryGetChunk(Vector2Int gridPos, out Chunk chunk, out Vector2Int localPos) //list instead of dictionary
-    {
-        if (!IsValidGridPosition(gridPos))
-        {
-            chunk = null;
-            localPos = Vector2Int.zero;
-            return false;
-        }
-
-        Vector2Int chunkCoord = new Vector2Int(gridPos.x / chunkSizeX, gridPos.y / chunkSizeY);
-        localPos = new Vector2Int(gridPos.x % chunkSizeX, gridPos.y % chunkSizeY);
-
-        int index = GetChunkIndex(chunkCoord);
-        if (index >= 0 && index < chunks.Count)
-        {
-            chunk = chunks[index];
-            return true;
-        }
-
-        chunk = null;
-        return false;
-    }
-
-    private int GetChunkIndex(Vector2Int chunkCoord)
-    {
-        if (chunkCoord.x < 0 || chunkCoord.x >= chunkCountX ||
-            chunkCoord.y < 0 || chunkCoord.y >= chunkCountY)
-            return -1;
-
-        return chunkCoord.y * chunkCountX + chunkCoord.x;
-    }
-
-
-    private void OnDrawGizmos()
-    {
-        if (!showChunks || chunks == null) return;
-        foreach (var chunk in chunks)
-        {
-            Vector2Int chunkCoord = chunk.chunkCoord;
-
-            Vector3 chunkOrigin = gridOrigin + new Vector3(chunkCoord.x * chunkSizeX * cellSize, 0,
-                chunkCoord.y * chunkSizeY * cellSize);
-            Vector3 size = new Vector3(chunkSizeX * cellSize, 0.1f, chunkSizeY * cellSize);
-            Vector3 center = chunkOrigin + size / 2f;
-
-            Gizmos.color = new Color(chunkGizmoColor.r, chunkGizmoColor.g, chunkGizmoColor.b, 0.1f);
-            Gizmos.DrawCube(center, size * 0.98f);
-
-            Gizmos.color = chunkGizmoColor;
-            Gizmos.DrawWireCube(center, size);
-
-#if UNITY_EDITOR
-            GUIStyle labelStyle = new GUIStyle
-            {
-                normal = new GUIStyleState { textColor = Color.white },
-                fontSize = 20,
-                alignment = TextAnchor.MiddleCenter
-            };
-
-            Handles.Label(center + Vector3.up * 0.5f, $"Chunk {chunkCoord.x},{chunkCoord.y}", labelStyle);
-#endif
-        }
-    }
-
-    #endregion
-
-    #region Recreate GameObject Base On Chunk Data
-
-    [ContextMenu("Re Create")]
-    public void RecreateWorld()
-    {
-        foreach (Chunk chunk in chunks)
-        {
-            if (chunk.floorsParent == null)
-            {
-                chunk.floorsParent = new GameObject($"Floor_{chunk.chunkCoord.x}_{chunk.chunkCoord.y}");
-                chunk.floorsParent.transform.SetParent(transform);
-            }
-
-            foreach (Transform child in chunk.floorsParent.transform)
-            {
-                Destroy(child.gameObject);
-            }
-
-            // Loop through all cells in the chunk
-            for (int x = 0; x < chunkSizeX; x++)
-            {
-                for (int y = 0; y < chunkSizeY; y++)
-                {
-                    Vector2Int localPos = new Vector2Int(x, y);
-                    Floor floor = chunk.GetCell(localPos);
-
-
-                    if (floor != null && floor.buildID != BuildID.None)
-                    {
-                        Vector2Int globalPos = chunk.chunkCoord * new Vector2Int(chunkSizeX, chunkSizeY) + localPos;
-                        Vector3 worldPos = GridToWorldPosition(globalPos);
-                        GameObject floorObj =
-                            Instantiate(GameManager.Instance.GetBuildingDataByID(floor.buildID).prefab, worldPos,
-                                Quaternion.identity);
-                        FloorBehaviour a = EditBuildingFactory.AddEditScripts(floor.buildID, floorObj) as FloorBehaviour;
-                        a.SetBuildID(floor.buildID);
-                        floorObj.transform.SetParent(chunk.floorsParent.transform);
-                        int floorIndex =
-                            localPos.x + localPos.y * chunkSizeX; // Assuming chunk size is chunkSizeX x chunkSizeY
-                        a.Init(floorIndex,floor.buildID, globalPos);
-
-                        for (int i = 0; i < floor.buildingWithDirection.Length; i++)
-                        {
-                            BuildingWithDirection building = floor.buildingWithDirection[i];
-                            if (building.ID != BuildID.None)
-                            {
-                                Direction direction = (Direction)(1 << i);
-                                Vector3 offset = CalculateOffsetAndRotate(direction, out float rotate);
-
-                                switch (building.ID)
-                                {
-                                    case BuildID.Wall:
-                                        GameObject wallObj = Instantiate(
-                                            GameManager.Instance.GetBuildingDataByID(building.ID).prefab,
-                                            worldPos + offset, // Position adjusted with offset
-                                            Quaternion.Euler(0, rotate, 0), // Rotation based on direction
-                                            chunk.floorsParent.transform); // Parent to the chunk
-                                        wallObj.transform.SetParent(chunk.wallsParents.transform);
-                                        WallBehaviour wallBehaviour =
-                                            EditBuildingFactory.AddEditScripts(building.ID, wallObj) as WallBehaviour;
-                                        wallBehaviour.SetBuildID(building.ID);
-                                        wallBehaviour.Init(i, floorIndex, building.ID, globalPos);
-                                        break;
-                                    case BuildID.Door:
-                                        foreach (Transform child in chunk.doorsParent.transform)
-                                        {
-                                            Destroy(child.gameObject);
-                                        }
-
-                                        GameObject doorObj = Instantiate(
-                                            GameManager.Instance.GetBuildingDataByID(building.ID).prefab,
-                                            worldPos + offset, // Position adjusted with offset
-                                            Quaternion.Euler(0, rotate, 0), // Rotation based on direction
-                                            chunk.doorsParent.transform); // Parent to the chunk
-                                        DoorBehaviour doorBehaviour =
-                                            EditBuildingFactory.AddEditScripts(building.ID, doorObj) as DoorBehaviour;
-                                        doorBehaviour.SetBuildID(building.ID);
-                                        doorBehaviour.Init(i, floorIndex, building.ID, globalPos);
-                                        break;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        Debug.Log("World recreation completed.");
-    }
-
 
     public void SetWallData(Vector2Int gridPosition, Direction direction, BuildID id)
     {
@@ -388,55 +187,108 @@ public class GridSystem : MonoBehaviour
         }
     }
 
-    private Vector3 CalculateOffsetAndRotate(Direction dir, out float rotate)
+    public void MarkGridCells(Vector2Int gridPosition, Vector2Int gridSize, bool isOccupied)
     {
-        float rotation = 0f;
-        Vector3 offset = Vector3.zero;
-        float cellSize = GridSystem.Instance.cellSize;
-
-        switch (dir)
+        // Notify any listeners that cells are changing state
+        for (int x = 0; x < gridSize.x; x++)
         {
-            case Direction.Top:
-                rotation = 90f;
-                offset = new Vector3(cellSize / 2, 0, cellSize);
-                break;
-            case Direction.Right:
-                rotation = 0;
-                offset = new Vector3(cellSize, 0, cellSize / 2);
-                break;
-            case Direction.Bot:
-                rotation = 90f;
-                offset = new Vector3(cellSize / 2, 0, 0);
-                break;
-            case Direction.Left:
-                rotation = 0;
-                offset = new Vector3(0, 0, cellSize / 2);
-                break;
+            for (int y = 0; y < gridSize.y; y++)
+            {
+                Vector2Int cellPos = gridPosition + new Vector2Int(x, y);
+                if (TryGetChunk(cellPos, out Chunk chunk, out Vector2Int localPos))
+                {
+                    // You might need to update something in the chunk data here
+                    // For example, mark the cell as occupied or update its state
+                    OnGridCellChanged?.Invoke(cellPos, isOccupied);
+                }
+            }
         }
-
-        rotate = rotation;
-        return offset;
     }
 
     #endregion
+
+    #region Grid Coordinate Conversion
+
+    public Vector2Int WorldToGridPosition(Vector3 worldPosition)
+    {
+        Vector3 localPosition = worldPosition - gridOrigin;
+        int x = Mathf.FloorToInt(localPosition.x / cellSize);
+        int z = Mathf.FloorToInt(localPosition.z / cellSize);
+        return new Vector2Int(x, z);
+    }
+
+    public Vector3 GridToWorldPosition(Vector2Int gridPosition)
+    {
+        return GridSystemExtension.GridToWorldPosition(gridPosition, gridOrigin, cellSize);
+    }
+
+    public Vector3 GridPosToWorldPosition(Vector2Int gridPosition)
+    {
+        return gridOrigin + new Vector3(gridPosition.x * cellSize, 0, gridPosition.y * cellSize);
+    }
+
+    public bool IsValidGridPosition(Vector2Int gridPosition)
+    {
+        return GridSystemExtension.IsValidGridPosition(gridPosition, gridWidth, gridHeight);
+    }
+    public Vector3 GetGridCenterPosition(Vector2Int gridPosition)
+    {
+        return GridSystemExtension.GetGridCenterPosition(gridPosition, gridOrigin, cellSize);
+    }
+    
+
+    #endregion
+
+    #region Chunk Management
+
+    private bool TryGetChunk(Vector2Int gridPos, out Chunk chunk, out Vector2Int localPos)
+    {
+        if (!IsValidGridPosition(gridPos))
+        {
+            chunk = null;
+            localPos = Vector2Int.zero;
+            return false;
+        }
+
+        Vector2Int chunkCoord = new Vector2Int(gridPos.x / chunkSizeX, gridPos.y / chunkSizeY);
+        localPos = new Vector2Int(gridPos.x % chunkSizeX, gridPos.y % chunkSizeY);
+
+        if (chunkLookup.TryGetValue(chunkCoord, out int index) && index >= 0 && index < chunks.Count)
+        {
+            chunk = chunks[index];
+            return true;
+        }
+
+        chunk = null;
+        return false;
+    }
+
+    private int GetChunkIndex(Vector2Int chunkCoord)
+    {
+        if (chunkCoord.x < 0 || chunkCoord.x >= chunkCountX ||
+            chunkCoord.y < 0 || chunkCoord.y >= chunkCountY)
+            return -1;
+
+        if (chunkLookup.TryGetValue(chunkCoord, out int index))
+        {
+            return index;
+        }
+
+        return -1;
+    }
+
+    #endregion
+
+    #region Mesh Handling
 
     private void HandleBakeMesh()
     {
         for (int i = 0; i < chunks.Count; i++)
         {
-            // Process floors
-            if (chunks[i].floorsParent != null)
+            if (chunks[i].floorsParent != null && chunks[i].NeedRebuild)
             {
-                if (chunks[i].NeedRebuild)
-                {
-                    CombineMeshes(chunks[i].floorsParent);
-                    CombineMeshes(chunks[i].wallsParents);
-                }
-                else
-                {
-                    Debug.Log($"Chunk {chunks[i].chunkCoord} does not need rebuild.");
-                }
-
+                CombineMeshes(chunks[i].floorsParent);
+                CombineMeshes(chunks[i].wallsParents);
                 chunks[i].NeedRebuild = false;
             }
         }
@@ -444,18 +296,12 @@ public class GridSystem : MonoBehaviour
 
     private void CombineMeshes(GameObject parent)
     {
-        if (parent == null)
-        {
-            return;
-        }
+        if (parent == null) return;
 
-        // Get all child mesh filters
         MeshFilter[] meshFilters = parent.GetComponentsInChildren<MeshFilter>();
-        if (meshFilters.Length == 0)
-        {
-            return;
-        }
+        if (meshFilters.Length == 0) return;
 
+        // Find a valid material
         Material material = null;
         foreach (MeshRenderer renderer in parent.GetComponentsInChildren<MeshRenderer>())
         {
@@ -466,18 +312,13 @@ public class GridSystem : MonoBehaviour
             }
         }
 
-        if (material == null)
-        {
-            return;
-        }
+        if (material == null) return;
 
         List<CombineInstance> validInstances = new List<CombineInstance>();
 
-        // Fill the combine instances
         foreach (MeshFilter mf in meshFilters)
         {
-            if (mf.sharedMesh == null)
-                continue;
+            if (mf.sharedMesh == null) continue;
 
             CombineInstance instance = new CombineInstance
             {
@@ -487,12 +328,9 @@ public class GridSystem : MonoBehaviour
             validInstances.Add(instance);
         }
 
-        if (validInstances.Count == 0)
-        {
-            return;
-        }
+        if (validInstances.Count == 0) return;
 
-        // Create new GameObject inside parent
+        // Create combined mesh object
         GameObject combinedObject = new GameObject("CombinedMesh");
         combinedObject.transform.SetParent(parent.transform);
         combinedObject.transform.localPosition = Vector3.zero;
@@ -502,25 +340,20 @@ public class GridSystem : MonoBehaviour
         MeshFilter combinedMeshFilter = combinedObject.AddComponent<MeshFilter>();
         MeshRenderer combinedRenderer = combinedObject.AddComponent<MeshRenderer>();
 
-        // Combine meshes
         Mesh combinedMesh = new Mesh
         {
             indexFormat = UnityEngine.Rendering.IndexFormat.UInt32
         };
         combinedMesh.CombineMeshes(validInstances.ToArray(), true, true);
 
-        if (combinedMesh.vertexCount == 0)
-        {
-            return;
-        }
+        if (combinedMesh.vertexCount == 0) return;
 
         combinedMeshFilter.sharedMesh = combinedMesh;
         combinedRenderer.sharedMaterial = material;
-        //cast shadow off, receive shadow off
         combinedRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
         combinedRenderer.receiveShadows = false;
 
-        // Destroy old children
+        // Remove old children
         List<GameObject> childrenToDestroy = new List<GameObject>();
         foreach (Transform child in parent.transform)
         {
@@ -535,34 +368,151 @@ public class GridSystem : MonoBehaviour
             DestroyImmediate(child);
         }
 
-        // Add MeshCollider
+        // Add collider
         MeshCollider collider = combinedObject.AddComponent<MeshCollider>();
         collider.sharedMesh = combinedMesh;
     }
+
+    #endregion
+
+    #region World Recreation
+
+    [ContextMenu("Re Create")]
+    public void RecreateWorld()
+    {
+        foreach (Chunk chunk in chunks)
+        {
+            RecreateChunk(chunk);
+        }
+
+        Debug.Log("World recreation completed.");
+    }
+
+    private void RecreateChunk(Chunk chunk)
+    {
+        EnsureChunkParents(chunk);
+        ClearChunkObjects(chunk.floorsParent);
+        ClearChunkObjects(chunk.wallsParents);
+        ClearChunkObjects(chunk.doorsParent);
+
+        // Loop through all cells in the chunk
+        for (int x = 0; x < chunkSizeX; x++)
+        {
+            for (int y = 0; y < chunkSizeY; y++)
+            {
+                Vector2Int localPos = new Vector2Int(x, y);
+                Floor floor = chunk.GetCell(localPos);
+
+                if (floor != null && floor.buildID != BuildID.None)
+                {
+                    RecreateFloor(chunk, localPos, floor);
+                }
+            }
+        }
+    }
+
+    private void EnsureChunkParents(Chunk chunk)
+    {
+        if (chunk.floorsParent == null)
+        {
+            chunk.floorsParent = new GameObject($"Floor_{chunk.chunkCoord.x}_{chunk.chunkCoord.y}");
+            chunk.floorsParent.transform.SetParent(transform);
+        }
+
+        if (chunk.wallsParents == null)
+        {
+            chunk.wallsParents = new GameObject($"Wall_{chunk.chunkCoord.x}_{chunk.chunkCoord.y}");
+            chunk.wallsParents.transform.SetParent(transform);
+        }
+
+        if (chunk.doorsParent == null)
+        {
+            chunk.doorsParent = new GameObject($"Door_{chunk.chunkCoord.x}_{chunk.chunkCoord.y}");
+            chunk.doorsParent.transform.SetParent(transform);
+        }
+    }
+
+    private void RecreateFloor(Chunk chunk, Vector2Int localPos, Floor floor)
+    {
+        Vector2Int globalPos = chunk.chunkCoord * new Vector2Int(chunkSizeX, chunkSizeY) + localPos;
+        Vector3 worldPos = GridToWorldPosition(globalPos);
+
+        // Create floor object
+        GameObject floorObj = Instantiate(
+            GameManager.Instance.GetBuildingDataByID(floor.buildID).prefab,
+            worldPos,
+            Quaternion.identity);
+
+        FloorBehaviour floorBehaviour = EditBuildingFactory.AddEditScripts(floor.buildID, floorObj) as FloorBehaviour;
+        floorBehaviour.SetBuildID(floor.buildID);
+        floorObj.transform.SetParent(chunk.floorsParent.transform);
+
+        int floorIndex = localPos.x + localPos.y * chunkSizeX;
+        floorBehaviour.Init(floorIndex, floor.buildID, globalPos);
+
+        // Create walls and doors
+        RecreateWallsAndDoors(chunk, floor, floorIndex, globalPos, worldPos);
+    }
+
+    private void RecreateWallsAndDoors(Chunk chunk, Floor floor, int floorIndex, Vector2Int globalPos, Vector3 worldPos)
+    {
+        for (int i = 0; i < floor.buildingWithDirection.Length; i++)
+        {
+            BuildingWithDirection building = floor.buildingWithDirection[i];
+            if (building.ID == BuildID.None) continue;
+
+            Direction direction = (Direction)(1 << i);
+            Vector3 offset = CalculateOffsetAndRotate(direction, out float rotate);
+
+            switch (building.ID)
+            {
+                case BuildID.Wall:
+                    CreateWall(chunk, building.ID, i, floorIndex, globalPos, worldPos, offset, rotate);
+                    break;
+                case BuildID.Door:
+                    CreateDoor(chunk, building.ID, i, floorIndex, globalPos, worldPos, offset, rotate);
+                    break;
+            }
+        }
+    }
+
+    private void CreateWall(Chunk chunk, BuildID buildID, int directionIndex, int floorIndex,
+        Vector2Int globalPos, Vector3 worldPos, Vector3 offset, float rotation)
+    {
+        GameObject wallObj = Instantiate(
+            GameManager.Instance.GetBuildingDataByID(buildID).prefab,
+            worldPos + offset,
+            Quaternion.Euler(0, rotation, 0),
+            chunk.wallsParents.transform);
+
+        WallBehaviour wallBehaviour = EditBuildingFactory.AddEditScripts(buildID, wallObj) as WallBehaviour;
+        wallBehaviour.SetBuildID(buildID);
+        wallBehaviour.Init(directionIndex, floorIndex, buildID, globalPos);
+    }
+
+    private void CreateDoor(Chunk chunk, BuildID buildID, int directionIndex, int floorIndex,
+        Vector2Int globalPos, Vector3 worldPos, Vector3 offset, float rotation)
+    {
+        GameObject doorObj = Instantiate(
+            GameManager.Instance.GetBuildingDataByID(buildID).prefab,
+            worldPos + offset,
+            Quaternion.Euler(0, rotation, 0),
+            chunk.doorsParent.transform);
+
+        DoorBehaviour doorBehaviour = EditBuildingFactory.AddEditScripts(buildID, doorObj) as DoorBehaviour;
+        doorBehaviour.SetBuildID(buildID);
+        doorBehaviour.Init(directionIndex, floorIndex, buildID, globalPos);
+    }
+
+    #endregion
+
+    #region Data Loading and Saving
 
     public void LoadWorldData(WorldData worldData)
     {
         if (worldData == null) return;
 
-        // Clear existing world
-        foreach (var chunk in chunks)
-        {
-            if (chunk.floorsParent != null)
-            {
-                foreach (Transform child in chunk.floorsParent.transform)
-                {
-                    Destroy(child.gameObject);
-                }
-            }
-
-            if (chunk.wallsParents != null)
-            {
-                foreach (Transform child in chunk.wallsParents.transform)
-                {
-                    Destroy(child.gameObject);
-                }
-            }
-        }
+        ClearChunks();
 
         // Apply saved data
         foreach (var chunkData in worldData.chunkData)
@@ -590,95 +540,85 @@ public class GridSystem : MonoBehaviour
             }
         }
 
-        // Recreate the world with loaded data
         RecreateWorld();
         HandleBakeMesh();
     }
 
-    [Serializable]
-    public class Chunk
+    #endregion
+
+    #region Helper Methods
+
+    private Vector3 CalculateOffsetAndRotate(Direction dir, out float rotate)
     {
-        public Vector2Int chunkCoord;
-        public Floor[,] chunkData;
-        public Floor[] floors;
-        public GameObject floorsParent;
-        public GameObject wallsParents;
-        public GameObject doorsParent; //no need combine mesh, just for edit
-        public bool NeedRebuild = false;
-        //mesh bake setting 
+        float rotation = 0f;
+        Vector3 offset = Vector3.zero;
 
-        public Chunk(Vector2Int coord, int sizeX, int sizeY)
+        switch (dir)
         {
-            floorsParent = new GameObject($"Floor_{coord.x}_{coord.y}");
-            wallsParents = new GameObject($"Wall_{coord.x}_{coord.y}");
-            doorsParent = new GameObject($"Door_{coord.x}_{coord.y}");
-            chunkCoord = coord;
-            chunkData = new Floor[sizeX, sizeY];
-
-            for (int x = 0; x < sizeX; x++)
-            {
-                for (int y = 0; y < sizeY; y++)
-                {
-                    chunkData[x, y] = new Floor(BuildID.None);
-                    chunkData[x, y].gridPos = new Vector2Int(x, y);
-                }
-            }
-
-            floors = new Floor[sizeX * sizeY];
+            case Direction.Top:
+                rotation = 90f;
+                offset = new Vector3(cellSize / 2, 0, cellSize);
+                break;
+            case Direction.Right:
+                rotation = 0;
+                offset = new Vector3(cellSize, 0, cellSize / 2);
+                break;
+            case Direction.Bot:
+                rotation = 90f;
+                offset = new Vector3(cellSize / 2, 0, 0);
+                break;
+            case Direction.Left:
+                rotation = 0;
+                offset = new Vector3(0, 0, cellSize / 2);
+                break;
         }
 
-        public Floor GetCell(Vector2Int localPos)
+        rotate = rotation;
+        return offset;
+    }
+
+    #endregion
+
+    #region Gizmo Drawing
+
+    private void OnDrawGizmos()
+    {
+        if (!showChunks || chunks == null || chunks.Count == 0) return;
+
+        foreach (var chunk in chunks)
         {
-            return chunkData[localPos.x, localPos.y];
-        }
-
-        public void SetCell(Vector2Int localPos, Floor floor, GameObject g)
-        {
-            chunkData[localPos.x, localPos.y] = floor;
-            int index = localPos.x + localPos.y * 5; //assuming chunk size is 5x5
-            floors[index] = floor;
-            g.transform.SetParent(floorsParent.transform);
-            NeedRebuild = true;
-        }
-
-        public bool IsCellOccupied(Vector2Int localPos)
-        {
-            return chunkData[localPos.x, localPos.y].buildID != BuildID.None;
-        }
-
-        public void SetWallWithDirection(Vector2Int localPos, Direction d, GameObject g, BuildID id)
-        {
-            chunkData[localPos.x, localPos.y].SetWall(d, id);
-            switch (id)
-            {
-                case BuildID.Wall:
-                    g.transform.SetParent(wallsParents.transform);
-                    break;
-                case BuildID.Door:
-                    g.transform.SetParent(doorsParent.transform);
-                    break;
-            }
-
-            NeedRebuild = true;
-        }
-
-        public void SetWallData(Vector2Int localPos, Direction d, BuildID id)
-        {
-            if (chunkData[localPos.x, localPos.y] == null)
-            {
-                Debug.LogWarning("Cannot set wall on an empty cell.");
-                return;
-            }
-
-            chunkData[localPos.x, localPos.y].SetWall(d, id);
-            NeedRebuild = true;
-        }
-
-        public void SetFloorData(Vector2Int localPos, BuildID id)
-        {
-            chunkData[localPos.x, localPos.y].buildID = id;
-            chunkData[localPos.x, localPos.y].buildingWithDirection = null;
-            NeedRebuild = true;
+            DrawChunkGizmo(chunk);
         }
     }
+
+    private void DrawChunkGizmo(Chunk chunk)
+    {
+        Vector2Int chunkCoord = chunk.chunkCoord;
+
+        Vector3 chunkOrigin = gridOrigin + new Vector3(
+            chunkCoord.x * chunkSizeX * cellSize, 0,
+            chunkCoord.y * chunkSizeY * cellSize);
+
+        Vector3 size = new Vector3(chunkSizeX * cellSize, 0.1f, chunkSizeY * cellSize);
+        Vector3 center = chunkOrigin + size / 2f;
+
+        Gizmos.color = new Color(chunkGizmoColor.r, chunkGizmoColor.g, chunkGizmoColor.b, 0.1f);
+        Gizmos.DrawCube(center, size * 0.98f);
+
+        Gizmos.color = chunkGizmoColor;
+        Gizmos.DrawWireCube(center, size);
+
+#if UNITY_EDITOR
+        GUIStyle labelStyle = new GUIStyle
+        {
+            normal = new GUIStyleState { textColor = Color.white },
+            fontSize = 20,
+            alignment = TextAnchor.MiddleCenter
+        };
+
+        Handles.Label(center + Vector3.up * 0.5f, $"Chunk {chunkCoord.x},{chunkCoord.y}", labelStyle);
+#endif
+    }
+
+    #endregion
 }

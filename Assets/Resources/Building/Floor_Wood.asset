@@ -16,4 +16,4 @@ MonoBehaviour:
   objectName: Floor
   prefab: {fileID: 8076553634286879440, guid: 2dbd14ea29711499c94a35d4e1e3747b, type: 3}
   gridSize: {x: 1, y: 1}
-  icon: {fileID: 21300000, guid: 7c51a371edbb04e49aa8a28e0aeb16ec, type: 3}
+  icon: {fileID: 21300000, guid: 53b50c39f203546b2938ade2680fc936, type: 3}

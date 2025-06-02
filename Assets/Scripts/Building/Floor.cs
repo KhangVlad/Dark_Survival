@@ -23,8 +23,8 @@ public class Floor : Building
 
     public void SetWall(Direction direction, BuildID id)
     {
-        if (!GridSystemExtension.IsValidGridPosition(gridPos, GridSystem.Instance.gridWidth,
-                GridSystem.Instance.gridHeight))
+        if (!GridSystemExtension.IsValidGridPosition(gridPos, GridSystem.Instance.GridWidth,
+                GridSystem.Instance.GridHeight))
         {
             return;
         }

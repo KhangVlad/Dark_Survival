@@ -2,12 +2,10 @@ using UnityEngine;
 
 public class FloorBehaviour : BuildBehaviour
 {
-    public int floorIndex = 0;
     public Vector2Int gridPosition;
 
     public void Init(int index, BuildID id, Vector2Int position)
     {
-        floorIndex = index;
         SetBuildID(id);
         gridPosition = position;
     }

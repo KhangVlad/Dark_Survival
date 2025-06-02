@@ -16,4 +16,4 @@ MonoBehaviour:
   objectName: Door
   prefab: {fileID: 1980455766676089015, guid: 72f5c628d360e4405a17a2bef16cf97c, type: 3}
   gridSize: {x: 1, y: 1}
-  icon: {fileID: 21300000, guid: de2dfca081c254948b8d3893a3b0fb37, type: 3}
+  icon: {fileID: 21300000, guid: d79aa355cb95f49f4ad7b32aa0884eea, type: 3}

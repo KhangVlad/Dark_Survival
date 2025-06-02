@@ -13,9 +13,7 @@ public static class GridSystemExtension
             gridPosition.y * cellSize + cellSize / 2);
     }
 
-    /// <summary>
-    /// Calculates the direction of a wall based on a hit point and floor center
-    /// </summary>
+
     public static Direction CalculateWallDirection(Vector3 hitPoint, Vector3 floorCenter)
     {
         Vector2 directionVector = new Vector2(hitPoint.x - floorCenter.x, hitPoint.z - floorCenter.z).normalized;
