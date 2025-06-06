@@ -16,4 +16,5 @@ public enum BuildID
 {
     Floor = 0,
     Wall = 1,
+    Chest = 2,
 }

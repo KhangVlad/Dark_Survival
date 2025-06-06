@@ -2,41 +2,89 @@ using System;
 using UnityEngine;
 
 [Flags]
-public enum WallDirection
+public enum Direction
 {
     None = 0,
-    North = 1 << 0,  // +Z direction
-    East = 1 << 1,   // +X direction
-    South = 1 << 2,  // -Z direction
-    West = 1 << 3,   // -X direction
-    All = North | East | South | West
+    Top = 1 << 0, 
+    Right = 1 << 1,   
+    Bot = 1 << 2, 
+    Left = 1 << 3,  
+    All = Top | Right | Bot | Left
 }
+
 
 public class Floor : Building
 {
-    [SerializeField] private WallDirection wallDirection;
-    
-    // Dictionary to store walls in each direction
-    private Wall[] attachedWalls = new Wall[4];
-
-    public WallDirection WallDirection => wallDirection;
-
-    public void SetWallWithDirection(WallDirection direction, Wall w)
+    public Wall[] attachedWalls = new Wall[4];
+    public void SetWallWithDirection(Direction direction, Wall w)
     {
-        wallDirection = direction;
-        attachedWalls[(int)direction] = w;
+        Vector2Int gridPosition = GridSystem.Instance.WorldToGridPosition(transform.position);
+
+        // Check if the grid position is valid
+        if (!GridSystemExtension.IsValidGridPosition(gridPosition,GridSystem.Instance.gridWidth, GridSystem.Instance.gridHeight))
+        {
+            return;
+        }
+        int directionIndex = BuildingExtension.GetWallDirectionIndex(direction);
+        if (directionIndex < 0 || directionIndex >= attachedWalls.Length)
+        {
+            return;
+        }
+        attachedWalls[directionIndex] = w;
     }
     
-
-    private void OnDestroy()
+    public bool IsDirectionCovered(Direction direction)
     {
-        // Clean up walls when floor is destroyed
-        for (int i = 0; i < attachedWalls.Length; i++)
+        int directionIndex = BuildingExtension.GetWallDirectionIndex(direction);
+        if (directionIndex < 0 || directionIndex >= attachedWalls.Length)
         {
-            if (attachedWalls[i] != null)
+            return false;
+        }
+        
+        return attachedWalls[directionIndex] != null;
+    }
+    
+    public bool IsDestroyAble()
+    {
+        // Check if all walls are null
+        foreach (var wall in attachedWalls)
+        {
+            if (wall != null)
             {
-                Destroy(attachedWalls[i].gameObject);
+                return false; // If any wall is present, the floor cannot be destroyed
             }
         }
+        return true; // All walls are null, the floor can be destroyed
     }
+    
+   //check if atleast 1 null wall
+    public bool IsWallAvailable()
+    {
+        foreach (var wall in attachedWalls)
+        {
+            if (wall == null)
+            {
+                return true; // At least one wall is available
+            }
+        }
+        return false; // No walls are available
+    }
+    
+    public Direction GetRandomNullDirection()
+    {
+        Direction[] directions = (Direction[])Enum.GetValues(typeof(Direction));
+        foreach (var direction in directions)
+        {
+            if (direction != Direction.None && !IsDirectionCovered(direction))
+            {
+                return direction; // Return the first uncovered direction
+            }
+        }
+        Debug.LogError("No uncovered direction found.");
+        return Direction.None;
+    }
+    
+   
+    
+    
 }

@@ -7,8 +7,9 @@ public class UIBuildingComfirm : MonoBehaviour //world space ui show option buil
     private Canvas _canvas;
     [SerializeField] private Button confirmButton;
     [SerializeField] private Button cancelButton;
+    [SerializeField] private Button destroyButton; //optional, only have if gridsystem is editing mode
     [SerializeField] private Transform uiTransform; //update position of this ui to the target transform 
-    [SerializeField] private Vector3 offset = new Vector3(0, 1.5f, 0); //offset position of this ui to the target transform
+    [SerializeField] private Vector3 offset = new Vector3(0.5f, 3f, 0); //offset position of this ui to the target transform
 
     private void Awake()
     {
@@ -20,19 +21,25 @@ public class UIBuildingComfirm : MonoBehaviour //world space ui show option buil
         confirmButton.onClick.AddListener(OnConfirm);
         cancelButton.onClick.AddListener(OnCancel);
     }
-    
+
+    private void OnDestroy()
+    {
+        confirmButton.onClick.RemoveAllListeners();
+        cancelButton.onClick.RemoveAllListeners();
+    }
+
     private void OnConfirm()
     {
-        Debug.Log("confirm");
-        GridBuildingSystem.Instance.PlaceBuilding();
+        GridSystem.Instance.PlaceBuilding();
     }
+    
+ 
     
     private void OnCancel()
     {
-        Debug.Log("cancel");
-        // Cancel the building placement
-        GridBuildingSystem.Instance.CancelBuilding();
+        GridSystem.Instance.CancelBuilding();
         CanvasController.Instance.ActiveBuildingCanvas(false);
+        CanvasController.Instance.SetActiveGameplayCanvas(true);
     }
     
     public void UpdatePosition(Vector3 targetPosition)
@@ -40,12 +47,9 @@ public class UIBuildingComfirm : MonoBehaviour //world space ui show option buil
         if (uiTransform != null)
         {
             uiTransform.position = targetPosition + offset;
-            
-            // Optional: Make UI face the camera
             if (Camera.main != null)
             {
-                uiTransform.LookAt(Camera.main.transform);
-                uiTransform.Rotate(0, 180, 0); // Flip to face the camera correctly
+                uiTransform.rotation = Quaternion.Euler(0, Camera.main.transform.eulerAngles.y, 0);
             }
         }
     }
@@ -53,13 +57,6 @@ public class UIBuildingComfirm : MonoBehaviour //world space ui show option buil
     public void ActiveCanvas(bool active)
     {
         _canvas.enabled = active;
-        
-        // Ensure that the components are properly enabled/disabled
-        if (confirmButton != null)
-            confirmButton.gameObject.SetActive(active);
-            
-        if (cancelButton != null)
-            cancelButton.gameObject.SetActive(active);
     }
 }
 

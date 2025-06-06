@@ -10,7 +10,8 @@ GameObject:
   m_Component:
   - component: {fileID: 2054322584806702302}
   - component: {fileID: -7078395583063960790}
-  m_Layer: 0
+  - component: {fileID: 3942327125992264709}
+  m_Layer: 9
   m_Name: Floor
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -47,7 +48,27 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   buildID: 0
   data: {fileID: 0}
-  wallDirection: 0
+--- !u!65 &3942327125992264709
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 42953541971033712}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1.0064836, y: 0.11653201, z: 1.0108167}
+  m_Center: {x: 0.49916792, y: -0.003189221, z: 0.4968757}
 --- !u!1 &8465597754618776623
 GameObject:
   m_ObjectHideFlags: 0
@@ -60,7 +81,7 @@ GameObject:
   - component: {fileID: 3728839504875260266}
   - component: {fileID: 3538868749525025059}
   - component: {fileID: 766341940670467080}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: Floor
   m_TagString: Untagged
   m_Icon: {fileID: 0}

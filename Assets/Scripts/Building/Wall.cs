@@ -2,9 +2,7 @@ using UnityEngine;
 
 public class Wall : Building
 {
-    [SerializeField] private WallDirection direction = WallDirection.North;
+    [SerializeField] private Direction direction = global::Direction.Top;
     private Floor attachedFloor;
-    public WallDirection Direction => direction;
-    
   
 }
