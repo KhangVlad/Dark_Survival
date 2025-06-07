@@ -1,7 +1,6 @@
 using System;
 using UnityEngine;
 
-[Serializable]
 public class Chunk
 {
     public Vector2Int chunkCoord;

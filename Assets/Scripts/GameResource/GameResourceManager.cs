@@ -12,13 +12,13 @@ public class GameResourceManager : MonoBehaviour
 
     private void Start()
     {
+        // Check if resourcePool is assigned
         if (resourcePool == null)
         {
-            Debug.LogError("ResourcePoolSO is not assigned in GameResourceManager.");
             return;
         }
 
-        Utilities.WaitAfter(0.5f, () => { SpawnResourcesOnAllChunks(); });
+        Utilities.WaitAfter(1f, () => SpawnResourcesOnAllChunks());
     }
 
     public void SetSeed(int seed)
@@ -92,22 +92,28 @@ public class GameResourceManager : MonoBehaviour
         }
 
     }
-
     ResourceDataSO GetWeightedRandomResourceWithSeed(Random random)
     {
+        if (resourcePool == null)
+        {
+            Debug.LogError("ResourcePoolSO is null");
+            return null;
+        }
+
         if (resourcePool.resources == null || resourcePool.resources.Count == 0)
         {
             Debug.LogWarning("No resources found in resource pool");
             return null;
         }
-
+    
         float totalWeight = 0f;
         foreach (var res in resourcePool.resources)
         {
             if (res == null) continue;
             totalWeight += res.spawnWeight;
         }
-
+    
+        // Add this check to prevent accessing empty collection
         if (totalWeight <= 0f)
         {
             Debug.LogWarning("Total resource spawn weight is zero or negative");
@@ -128,11 +134,9 @@ public class GameResourceManager : MonoBehaviour
 
         return resourcePool.resources[resourcePool.resources.Count - 1];
     }
+  
+   
 
     // Keep for compatibility with other code that might call it
-    ResourceDataSO GetWeightedRandomResource()
-    {
-        Random random = new Random(worldSeed);
-        return GetWeightedRandomResourceWithSeed(random);
-    }
+
 }
