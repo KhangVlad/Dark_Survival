@@ -6,6 +6,7 @@
     [Serializable]
     public class Building : Entity
     {
+        
     }
     
     

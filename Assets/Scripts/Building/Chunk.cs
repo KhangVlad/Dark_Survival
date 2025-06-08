@@ -10,6 +10,7 @@ public class Chunk
     [HideInInspector] public GameObject floorsParent;
     [HideInInspector] public GameObject wallsParents;
     [HideInInspector] public GameObject doorsParent;
+    [HideInInspector] public GameObject resourcesParent;
     public bool NeedRebuild = false;
 
     public Chunk(Vector2Int coord, int sizeX, int sizeY)
@@ -17,6 +18,7 @@ public class Chunk
         floorsParent = new GameObject($"Floor_{coord.x}_{coord.y}");
         wallsParents = new GameObject($"Wall_{coord.x}_{coord.y}");
         doorsParent = new GameObject($"Door_{coord.x}_{coord.y}");
+        resourcesParent = new GameObject($"Resource_{coord.x}_{coord.y}");
         chunkCoord = coord;
         chunkData = new Entity[sizeX, sizeY];
         for (int x = 0; x < sizeX; x++)
@@ -35,15 +37,25 @@ public class Chunk
         return chunkData[localPos.x, localPos.y];
     }
 
-    public void SetCell(Vector2Int localPos, Entity e, GameObject g, int chunkWidth)
+    public void SetCell(Vector2Int localPos, Entity e, GameObject g)
     {
         chunkData[localPos.x, localPos.y] = e;
         if (e is Floor f)
         {
-            f.gridPos = localPos;
+            g.transform.SetParent(floorsParent.transform);
         }
-
-        g.transform.SetParent(floorsParent.transform);
+        else if (e is ResourceNode r)
+        {
+            g.transform.SetParent(resourcesParent.transform);
+            SetFloorData(localPos, r.entityID);
+        }
+        else
+        {
+            Debug.LogWarning($"Unknown entity type: {e.GetType()} at position {localPos}");
+            return;
+        }
+        e.gridPos = localPos;
+        // g.transform.SetParent(floorsParent.transform);
         NeedRebuild = true;
     }
 
@@ -79,10 +91,7 @@ public class Chunk
             f.SetWall(d, id);
             NeedRebuild = true;
         }
-        else
-        {
-            Debug.LogWarning("Cannot set wall on a non-floor entity.");
-        }
+       
     }
 
     public void SetFloorData(Vector2Int localPos, EntityID id)
@@ -94,10 +103,7 @@ public class Chunk
             f.buildingWithDirection = null;
             NeedRebuild = true;
         }
-        else
-        {
-            Debug.LogWarning("Cannot set floor data on a non-floor entity.");
-        }
+       
     }
 
     public bool IsCellOccupied(Vector2Int localPos)

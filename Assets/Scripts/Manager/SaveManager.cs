@@ -57,78 +57,152 @@ public class SaveManager : MonoBehaviour
         System.IO.File.WriteAllText(path, json);
     }
 
+    // private void SaveWorldData()
+    // {
+    //     if (GridSystem.Instance == null) return;
+    //
+    //     WorldData worldData = new WorldData();
+    //     worldData.chunkData = new List<ChunkData>();
+    //
+    //     foreach (var chunk in GridSystem.Instance.chunks)
+    //     {
+    //         ChunkData chunkData = new ChunkData
+    //         {
+    //             chunkCoord = chunk.chunkCoord,
+    //             entities = new List<EnityData>()
+    //         };
+    //
+    //         // Get chunk dimensions
+    //         int sizeX = chunk.chunkData.GetLength(0);
+    //         int sizeY = chunk.chunkData.GetLength(1);
+    //
+    //         for (int x = 0; x < sizeX; x++)
+    //         {
+    //             for (int y = 0; y < sizeY; y++)
+    //             {
+    //                 Entity e = chunk.chunkData[x, y];
+    //                 if (e != null && e.entityID != EntityID.None)
+    //                 {
+    //                     EnityData enityData = new EnityData
+    //                     {
+    //                         localPos = new Vector2Int(x, y),
+    //                         entityID = e.entityID,
+    //                         walls = new List<WallData>()
+    //                     };
+    //
+    //
+    //                     if (e is Floor floor && floor.buildingWithDirection != null)
+    //                     {
+    //                         for (int i = 0; i < floor.buildingWithDirection.Length; i++)
+    //                         {
+    //                             var building = floor.buildingWithDirection[i];
+    //
+    //                             if (building != null && building.ID != EntityID.None)
+    //                             {
+    //                                 WallData wallData = new WallData
+    //                                 {
+    //                                     directionIndex = i,
+    //                                     entityID = building.ID
+    //                                 };
+    //
+    //                                 enityData.walls.Add(wallData);
+    //                             }
+    //                         }
+    //                     }
+    //                     else if (e is ResourceNode r)
+    //                     {
+    //                         enityData.walls = null;
+    //                         Debug.Log($"ResourceNode at {x}, {y} with ID: {r.entityID} does not have walls.");
+    //                     }
+    //
+    //
+    //                     // Save wall data for this floor
+    //
+    //
+    //                     chunkData.entities.Add(enityData);
+    //                 }
+    //             }
+    //         }
+    //
+    //         worldData.chunkData.Add(chunkData);
+    //     }
+    //
+    //     string json = JsonUtility.ToJson(worldData, true);
+    //     string path = Application.persistentDataPath + "/worldData.json";
+    //     File.WriteAllText(path, json);
+    // }
+
     private void SaveWorldData()
+{
+    if (GridSystem.Instance == null) return;
+
+    WorldData worldData = new WorldData();
+    worldData.chunkData = new List<ChunkData>();
+
+    foreach (var chunk in GridSystem.Instance.chunks)
     {
-        if (GridSystem.Instance == null) return;
-
-        WorldData worldData = new WorldData();
-        worldData.chunkData = new List<ChunkData>();
-
-        foreach (var chunk in GridSystem.Instance.chunks)
+        ChunkData chunkData = new ChunkData
         {
-            ChunkData chunkData = new ChunkData
-            {
-                chunkCoord = chunk.chunkCoord,
-                entities = new List<EnityData>()
-            };
+            chunkCoord = chunk.chunkCoord,
+            entities = new List<EnityData>()
+        };
 
-            // Get chunk dimensions
-            int sizeX = chunk.chunkData.GetLength(0);
-            int sizeY = chunk.chunkData.GetLength(1);
+        // Get chunk dimensions
+        int sizeX = chunk.chunkData.GetLength(0);
+        int sizeY = chunk.chunkData.GetLength(1);
 
-            for (int x = 0; x < sizeX; x++)
+        for (int x = 0; x < sizeX; x++)
+        {
+            for (int y = 0; y < sizeY; y++)
             {
-                for (int y = 0; y < sizeY; y++)
+                Entity e = chunk.chunkData[x, y];
+                if (e != null && e.entityID != EntityID.None)
                 {
-                    Entity e = chunk.chunkData[x, y];
-                    if (e != null && e.entityID != EntityID.None)
+                    EnityData entityData = new EnityData
                     {
-                        EnityData enityData = new EnityData
-                        {
-                            localPos = new Vector2Int(x, y),
-                            entityID = e.entityID,
-                            walls = new List<WallData>()
-                        };
+                        localPos = new Vector2Int(x, y),
+                        entityID = e.entityID,
+                        walls = new List<WallData>()
+                    };
 
-                      
-                        if (e is Floor floor && floor.buildingWithDirection != null)
+                    if (e is Floor floor && floor.buildingWithDirection != null)
+                    {
+                        // Save wall data for floors
+                        for (int i = 0; i < floor.buildingWithDirection.Length; i++)
                         {
-                            for (int i = 0; i < floor.buildingWithDirection.Length; i++)
+                            var building = floor.buildingWithDirection[i];
+
+                            if (building != null && building.ID != EntityID.None)
                             {
-                                var building = floor.buildingWithDirection[i];
-
-                                if (building != null && building.ID != EntityID.None)
+                                WallData wallData = new WallData
                                 {
-                                    WallData wallData = new WallData
-                                    {
-                                        directionIndex = i,
-                                        entityID = building.ID
-                                    };
+                                    directionIndex = i,
+                                    entityID = building.ID
+                                };
 
-                                    enityData.walls.Add(wallData);
-                                }
+                                entityData.walls.Add(wallData);
                             }
-
-                            // buildingWithDirection processed
                         }
-
-
-                        // Save wall data for this floor
-
-
-                        chunkData.entities.Add(enityData);
                     }
+                    else if (e is ResourceNode)
+                    {
+                        // For resource nodes, we only need to store the entity ID
+                        // No wall data needed
+                        entityData.walls = null;
+                    }
+
+                    chunkData.entities.Add(entityData);
                 }
             }
-
-            worldData.chunkData.Add(chunkData);
         }
 
-        string json = JsonUtility.ToJson(worldData, true);
-        string path = Application.persistentDataPath + "/worldData.json";
-        File.WriteAllText(path, json);
+        worldData.chunkData.Add(chunkData);
     }
 
+    string json = JsonUtility.ToJson(worldData, true);
+    string path = Application.persistentDataPath + "/worldData.json";
+    File.WriteAllText(path, json);
+}
     public UserData LoadUserData()
     {
         UserData userData = null;
@@ -137,7 +211,6 @@ public class SaveManager : MonoBehaviour
         {
             string json = File.ReadAllText(path);
             userData = JsonUtility.FromJson<UserData>(json);
-            Debug.Log("User data loaded from: " + path);
             return userData;
         }
 
@@ -151,7 +224,6 @@ public class SaveManager : MonoBehaviour
         {
             string json = File.ReadAllText(path);
             WorldData worldData = JsonUtility.FromJson<WorldData>(json);
-            Debug.Log("World data loaded from: " + path);
             return worldData;
         }
 
@@ -169,7 +241,7 @@ public class WorldData
 public class ChunkData
 {
     public Vector2Int chunkCoord;
-   public List<EnityData> entities = new List<EnityData>();
+    public List<EnityData> entities = new List<EnityData>();
 }
 
 [Serializable]
@@ -184,5 +256,5 @@ public class EnityData
 public class WallData
 {
     public int directionIndex;
-     public EntityID entityID;
+    public EntityID entityID;
 }

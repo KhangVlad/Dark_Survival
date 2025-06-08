@@ -5,9 +5,9 @@ using System;
 [Serializable]
 public class Wall : Building 
 {
-    public Wall()
+    public Wall(EntityID id)
     {
-        this.entityID = EntityID.Wall;
+        this.entityID = id;
     }
 }   
 

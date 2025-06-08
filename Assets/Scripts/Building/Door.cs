@@ -1,8 +1,8 @@
 
     public class Door : Building
     {
-        public Door()
+        public Door(EntityID id)
         {
-            this.entityID = EntityID.Door;
+            this.entityID = id;
         }
     }

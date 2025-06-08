@@ -27,10 +27,8 @@ public class Floor : Building
         if (!GridSystemExtension.IsValidGridPosition(gridPos, GridSystem.Instance.GridWidth,
                 GridSystem.Instance.GridHeight))
         {
-            Debug.LogError($"Invalid grid position: {gridPos} for Floor with ID: {entityID}");
             return;
         }
-        Debug.Log($"Setting wall at {gridPos} in direction {direction} with ID: {id}");
         int index = BuildingExtension.GetWallDirectionIndex(direction);
         buildingWithDirection[index] = new BuildingWithDirection();
         buildingWithDirection[index].SetBuilding(id);

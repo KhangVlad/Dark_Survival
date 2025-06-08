@@ -4,7 +4,7 @@ public class FloorBehaviour : BuildBehaviour
 {
     public Vector2Int gridPosition;
 
-    public void Init(int index, EntityID id, Vector2Int position)
+    public void Init(EntityID id, Vector2Int position)
     {
         SetBuildID(id);
         gridPosition = position;
@@ -23,6 +23,5 @@ public class FloorBehaviour : BuildBehaviour
     }
     public override void InteractWithBuilding()
     {
-      
     }
 }

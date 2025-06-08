@@ -5,6 +5,20 @@ using Random = System.Random;
 
 public class GameResourceManager : MonoBehaviour
 {
+    public static GameResourceManager Instance { get; private set; }
+
+    private void Awake()
+    {
+        if (Instance == null)
+        {
+            Instance = this;
+        }
+        else
+        {
+            Destroy(gameObject); // Ensure only one instance exists
+        }
+    }
+
     public ResourcePoolSO resourcePool;
     public int worldSeed = 12345; // Default seed for random generation
 
@@ -18,7 +32,7 @@ public class GameResourceManager : MonoBehaviour
             return;
         }
 
-        Utilities.WaitAfter(1f, () => SpawnResourcesOnAllChunks());
+        // Utilities.WaitAfter(1f, () => SpawnResourcesOnAllChunks());
     }
 
     public void SetSeed(int seed)
@@ -26,6 +40,9 @@ public class GameResourceManager : MonoBehaviour
         worldSeed = seed;
     }
 
+    
+    
+    [ContextMenu("A")]
     public void SpawnResourcesOnAllChunks()
     {
         if (GridSystem.Instance == null || GridSystem.Instance.chunks == null)
@@ -43,53 +60,66 @@ public class GameResourceManager : MonoBehaviour
         }
     }
 
+
     void SpawnResourcesInChunk(Chunk chunk)
+{
+    // Clear any existing resources in this chunk
+    if (chunk.resourcesParent != null)
     {
-        int sizeX = chunk.chunkData.GetLength(0);
-        int sizeY = chunk.chunkData.GetLength(1);
-
-        // Create a seeded random for this chunk
-        int chunkSeed = worldSeed +
-                        chunk.chunkCoord.x * 1000 +
-                        chunk.chunkCoord.y * 100000;
-        Random chunkRandom = new Random(chunkSeed);
-
-        int spawnedCount = 0;
-        for (int x = 0; x < sizeX; x++)
+        foreach (Transform child in chunk.resourcesParent.transform)
         {
-            for (int y = 0; y < sizeY; y++)
+            Destroy(child.gameObject);
+        }
+    }
+
+    // Create a deterministic random number generator based on chunk coordinates and world seed
+    Random random = new Random(worldSeed + chunk.chunkCoord.x * 1000 + chunk.chunkCoord.y);
+
+    // Get chunk dimensions from the chunk data array
+    int chunkSizeX = chunk.chunkData.GetLength(0);
+    int chunkSizeY = chunk.chunkData.GetLength(1);
+
+    // Calculate global chunk position
+    Vector2Int chunkOffset = chunk.chunkCoord * new Vector2Int(chunkSizeX, chunkSizeY);
+
+    // Iterate through each cell in the chunk
+    for (int x = 0; x < chunkSizeX; x++)
+    {
+        for (int y = 0; y < chunkSizeY; y++)
+        {
+            Vector2Int localPos = new Vector2Int(x, y);
+            Vector2Int globalPos = chunkOffset + localPos;
+
+            // Skip if cell is already occupied
+            if (chunk.IsCellOccupied(localPos))
+                continue;
+
+            // Random chance to spawn a resource at this position
+            if (random.NextDouble() <= spawnChancePerCell)
             {
-                Vector2Int localPos = new(x, y);
-                if (chunk.IsCellOccupied(localPos)) continue;
-                int cellSeed = chunkSeed + x * 73 + y * 31;
-                Random cellRandom = new Random(cellSeed);
+                // Get a random resource based on weights
+                ResourceDataSO resourceData = GetWeightedRandomResourceWithSeed(random);
+                if (resourceData == null || resourceData.prefab == null)
+                    continue;
 
-                float spawnChance = (float)cellRandom.NextDouble();
-                if (spawnChance < spawnChancePerCell)
-                {
-                    var resource = GetWeightedRandomResourceWithSeed(cellRandom);
-                    if (resource == null) continue;
-
-                    Vector3 worldPos = GridSystem.Instance.GetWorldPositionFromChunk(chunk.chunkCoord, localPos);
-
-                    // Generate offsets deterministically
-                    float offsetX = (float)(cellRandom.NextDouble() * 0.8f - 0.4f);
-                    float offsetZ = (float)(cellRandom.NextDouble() * 0.8f - 0.4f);
-                    worldPos += new Vector3(offsetX, 0, offsetZ);
-
-                    float rotationY = (float)(cellRandom.NextDouble() * 360f);
-                    Quaternion rot = Quaternion.Euler(0f, rotationY, 0f);
-                    GameObject instance = Instantiate(resource.prefab, worldPos, rot);
-                    if (instance != null)
-                    {
-                        spawnedCount++;
-                        instance.name = $"Resource_{resource.name}";
-                    }
-                }
+                // Create resource entity
+                ResourceNode resourceNode = new ResourceNode(resourceData.itemID);
+                
+                // Calculate world position with offset for centering in the cell
+                Vector3 worldPos = GridSystem.Instance.GridPosToWorldPosition(globalPos);
+                // Add offset to center within cell (0.5 in both x and z directions)
+                worldPos += new Vector3(1 * 0.5f, 0, 1 * 0.5f);
+                float randomYRotation = (float)(random.NextDouble() * 360f); // Random rotation between 0-360 degrees
+                GameObject resourceObj = Instantiate(resourceData.prefab, worldPos, Quaternion.Euler(0, randomYRotation, 0));
+                resourceObj.transform.SetParent(chunk.resourcesParent.transform);
+                
+                
+                // Set the resource in the chunk data
+                chunk.SetCell(localPos, resourceNode, resourceObj);
             }
         }
-
     }
+}
     ResourceDataSO GetWeightedRandomResourceWithSeed(Random random)
     {
         if (resourcePool == null)
@@ -103,14 +133,14 @@ public class GameResourceManager : MonoBehaviour
             Debug.LogWarning("No resources found in resource pool");
             return null;
         }
-    
+
         float totalWeight = 0f;
         foreach (var res in resourcePool.resources)
         {
             if (res == null) continue;
             totalWeight += res.spawnWeight;
         }
-    
+
         // Add this check to prevent accessing empty collection
         if (totalWeight <= 0f)
         {
@@ -132,9 +162,29 @@ public class GameResourceManager : MonoBehaviour
 
         return resourcePool.resources[resourcePool.resources.Count - 1];
     }
-  
-   
+    
+    
+    public GameObject GetResourcePrefabByID(EntityID id)
+    {
+        if (resourcePool == null || resourcePool.resources == null)
+        {
+            Debug.LogError("ResourcePoolSO or resources list is null");
+            return null;
+        }
+
+        foreach (var resource in resourcePool.resources)
+        {
+            if (resource != null && resource.itemID == id)
+            {
+                Debug.Log($"AAAAAAAA");
+                return resource.prefab;
+            }
+        }
+
+        Debug.LogWarning($"Resource with ID {id} not found in pool");
+        return null;
+    }
+
 
     // Keep for compatibility with other code that might call it
-
 }

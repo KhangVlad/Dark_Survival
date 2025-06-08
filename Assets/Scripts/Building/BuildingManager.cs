@@ -371,7 +371,7 @@ public class BuildingManager : MonoBehaviour
         GameObject g = Instantiate(currentSelectedObject.prefab, worldPosition, Quaternion.identity);
         Floor f = new Floor(EntityID.Floor);
         f.gridPos = gridPosition;
-        GridSystem.Instance.SetCell(gridPosition, f, g);
+        GridSystem.Instance.SetCellInChunk(gridPosition, f, g);
     }
 
     #endregion
