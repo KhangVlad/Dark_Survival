@@ -3,9 +3,9 @@
 
     public abstract class BuildBehaviour : MonoBehaviour
     {
-        public BuildID buildID;
+        public EntityID buildID;
         
-        public void SetBuildID(BuildID newBuildID)
+        public void SetBuildID(EntityID newBuildID)
         {
             buildID = newBuildID;
         }

@@ -6,7 +6,7 @@ public class WallBehaviour : BuildBehaviour
     public int wallIndex = -1;
     public Vector2Int gridPosition;
 
-    public void Init(int wIndex, int floor, BuildID id, Vector2Int position)
+    public void Init(int wIndex, int floor, EntityID id, Vector2Int position)
     {
         wallIndex = wIndex;
         floorIndex = floor;
@@ -18,7 +18,7 @@ public class WallBehaviour : BuildBehaviour
     public override void DeleteBuilding()
     {
         Direction direction = BuildingExtension.GetWallDirectionByIndex(wallIndex);
-        GridSystem.Instance.SetWallData(gridPosition, direction, BuildID.None);
+        GridSystem.Instance.SetWallData(gridPosition, direction, EntityID.None);
         Destroy(this.gameObject);
     }
     

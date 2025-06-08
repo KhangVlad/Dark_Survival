@@ -4,7 +4,7 @@ public class FloorBehaviour : BuildBehaviour
 {
     public Vector2Int gridPosition;
 
-    public void Init(int index, BuildID id, Vector2Int position)
+    public void Init(int index, EntityID id, Vector2Int position)
     {
         SetBuildID(id);
         gridPosition = position;
@@ -14,15 +14,11 @@ public class FloorBehaviour : BuildBehaviour
     // Method to apply changes to the floor
     public override void DeleteBuilding()
     {
-        Floor floor = GridSystem.Instance.GetFloorAt(gridPosition,out _);
+        Floor floor = GridSystem.Instance.GetEntityById<Floor>(gridPosition,out _);
         if (floor.IsDestroyAble())
         {
-            GridSystem.Instance.SetFloorData(gridPosition, BuildID.None); 
+            GridSystem.Instance.SetFloorData(gridPosition, EntityID.None); 
             Destroy(this.gameObject);
-        }
-        else
-        {
-            Debug.LogError($"Cannot delete floor at position {gridPosition} because it has walls or other buildings.");
         }
     }
     public override void InteractWithBuilding()

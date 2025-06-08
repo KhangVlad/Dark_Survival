@@ -33,12 +33,12 @@ public class GameManager : MonoBehaviour
         OnDataLoaded?.Invoke();
     }
 
-    public BuildDataSO GetBuildingDataByID(BuildID id)
+    public BuildDataSO GetBuildingDataByID(EntityID id)
     {
         BuildDataSO data = null;
         for (int i = 0; i < BuildingDataSO.Length; i++)
         {
-            if (BuildingDataSO[i].buildID == id)
+            if (BuildingDataSO[i].entityID == id)
             {
                 data = BuildingDataSO[i];
             }

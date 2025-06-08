@@ -62,7 +62,7 @@ public class UIBuilding : MonoBehaviour
         {
             var slot = Instantiate(_uiPrefabs, parrent);
             BuildDataSO dataSO =
-                GameManager.Instance.GetBuildingDataByID(GameManager.Instance.BuildingDataSO[i].buildID);
+                GameManager.Instance.GetBuildingDataByID(GameManager.Instance.BuildingDataSO[i].entityID);
             slot.InitializeData(dataSO);
             slot.OnClick += (o =>
             {

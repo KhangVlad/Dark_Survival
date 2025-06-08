@@ -53,11 +53,9 @@ public class UIGameplay : MonoBehaviour
        
         if (active)
         {
-            Debug.Log("Gameplay canvas is enabled");
         }
         else
         {
-            Debug.Log("Gameplay canvas is disabled");
         }
         _canvas.enabled = active;
     }

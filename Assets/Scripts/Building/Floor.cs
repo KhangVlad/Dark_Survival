@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using System.Collections.Generic;
 
 [Flags]
 public enum Direction
@@ -21,15 +22,15 @@ public class Floor : Building
     // public Direction coveredDirections = Direction.None;
     public Vector2Int gridPos;
 
-    public void SetWall(Direction direction, BuildID id)
+    public void SetWall(Direction direction, EntityID id)
     {
         if (!GridSystemExtension.IsValidGridPosition(gridPos, GridSystem.Instance.GridWidth,
                 GridSystem.Instance.GridHeight))
         {
+            Debug.LogError($"Invalid grid position: {gridPos} for Floor with ID: {entityID}");
             return;
         }
-        //none means no wall, so we can set it
-
+        Debug.Log($"Setting wall at {gridPos} in direction {direction} with ID: {id}");
         int index = BuildingExtension.GetWallDirectionIndex(direction);
         buildingWithDirection[index] = new BuildingWithDirection();
         buildingWithDirection[index].SetBuilding(id);
@@ -39,14 +40,14 @@ public class Floor : Building
     public bool IsDirectionCovered(Direction direction)
     {
         int index = BuildingExtension.GetWallDirectionIndex(direction);
-        return buildingWithDirection[index].ID != BuildID.None;
+        return buildingWithDirection[index].ID != EntityID.None;
     }
 
     public bool IsDestroyAble()
     {
         foreach (BuildingWithDirection building in buildingWithDirection)
         {
-            if (building.ID != BuildID.None)
+            if (building.ID != EntityID.None)
             {
                 return false; // Can't destroy if any wall exists
             }
@@ -55,17 +56,20 @@ public class Floor : Building
         return true;
     }
 
+  
     public bool IsWallAvailable()
     {
-        foreach (BuildingWithDirection building in buildingWithDirection)
+       
+        for (int i = 0; i < buildingWithDirection.Length; i++)
         {
+            BuildingWithDirection building = buildingWithDirection[i];
             if (building == null)
             {
-                Debug.LogError("BuildingWithDirection is null in Floor.");
+                Debug.LogError($"BuildingWithDirection at index {i} is null in Floor at position {gridPos}");
                 continue;
             }
 
-            if (building.ID == BuildID.None)
+            if (building.ID == EntityID.None)
             {
                 return true;
             }
@@ -74,33 +78,15 @@ public class Floor : Building
         return false;
     }
 
-    public Direction GetRandomNullDirection()
+ 
+ 
+
+    public Floor(EntityID entityID)
     {
-        foreach (Direction dir in Enum.GetValues(typeof(Direction)))
-        {
-            if (dir == Direction.None || dir == Direction.All) continue;
-            if (!IsDirectionCovered(dir))
-            {
-                return dir;
-            }
-        }
-
-        Debug.LogError("No uncovered direction found.");
-        return Direction.None;
-    }
-
-    public bool IsHaveWallAtDirection(Direction direction)
-    {
-        return IsDirectionCovered(direction);
-    }
-
-
-    public Floor(BuildID buildID)
-    {
-        this.buildID = buildID;
+        this.entityID = entityID;
         // coveredDirections = Direction.None;
         buildingWithDirection =
-            new BuildingWithDirection[4]; // Initialize with 4 directions, index 0 = Top, 1 = Right, 2 = Bot, 3 = Left
+            new BuildingWithDirection[4];
         for (int i = 0; i < buildingWithDirection.Length; i++)
         {
             buildingWithDirection[i] = new BuildingWithDirection();
@@ -111,9 +97,9 @@ public class Floor : Building
 [Serializable]
 public class BuildingWithDirection
 {
-    public BuildID ID;
+    public EntityID ID;
 
-    public void SetBuilding(BuildID id)
+    public void SetBuilding(EntityID id)
     {
         this.ID = id;
     }

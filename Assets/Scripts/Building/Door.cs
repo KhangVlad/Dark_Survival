@@ -3,6 +3,6 @@
     {
         public Door()
         {
-            this.buildID = BuildID.Door;
+            this.entityID = EntityID.Door;
         }
     }

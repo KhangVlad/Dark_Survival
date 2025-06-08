@@ -16,7 +16,7 @@ public class DoorBehaviour : BuildBehaviour
     [SerializeField] private Ease easeType = Ease.OutBack;
     private bool isOpen = false;
 
-    public void Init(int wIndex, int floor, BuildID id, Vector2Int position)
+    public void Init(int wIndex, int floor, EntityID id, Vector2Int position)
     {
         wallIndex = wIndex;
         floorIndex = floor;
@@ -40,7 +40,7 @@ public class DoorBehaviour : BuildBehaviour
     public override void DeleteBuilding()
     {
         Direction direction = BuildingExtension.GetWallDirectionByIndex(wallIndex);
-        GridSystem.Instance.SetWallData(gridPosition, direction, BuildID.None);
+        GridSystem.Instance.SetWallData(gridPosition, direction, EntityID.None);
         Destroy(this.gameObject);
     }
 

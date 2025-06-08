@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0597a8c582f846f9b5d6683b9c736f33, type: 3}
   m_Name: Door
   m_EditorClassIdentifier: 
-  buildID: 3
+  entityID: 103
   objectName: Door
   prefab: {fileID: 1980455766676089015, guid: 72f5c628d360e4405a17a2bef16cf97c, type: 3}
   gridSize: {x: 1, y: 1}

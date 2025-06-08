@@ -82,6 +82,7 @@ public class GridSystem : MonoBehaviour
 
     [Header("Grid Settings")] [SerializeField]
     private int gridWidth = 50;
+
     public int GridSizeX => gridWidth;
     public int GridHeight => gridHeight;
 
@@ -138,23 +139,25 @@ public class GridSystem : MonoBehaviour
         return true;
     }
 
-    public Floor GetFloorAt(Vector2Int gridPosition, out int index)
+
+    public T GetEntityById<T>(Vector2Int gridPosition, out int index) where T : Entity
     {
         if (TryGetChunk(gridPosition, out Chunk chunk, out Vector2Int localPos))
         {
             index = localPos.x + localPos.y * chunkSizeX;
-            return chunk.GetCell(localPos);
+            return chunk.GetCell(localPos) as T;
         }
 
         index = -1;
         return null;
     }
 
-    public void SetFloorAt(Vector2Int gridPosition, Floor floor, GameObject g)
+    public void SetCell(Vector2Int gridPosition, Entity e, GameObject g)
     {
         if (TryGetChunk(gridPosition, out Chunk chunk, out Vector2Int localPos))
         {
-            chunk.SetCell(localPos, floor, g, chunkSizeX);
+            Debug.Log($"Setting floor at {gridPosition} with local position {localPos}");
+            chunk.SetCell(localPos, e, g, chunkSizeX);
         }
     }
 
@@ -163,7 +166,7 @@ public class GridSystem : MonoBehaviour
         return !IsCellOccupied(gridPosition);
     }
 
-    public void SetWallWithDirection(Vector2Int gridPosition, Direction direction, GameObject g, BuildID id)
+    public void SetWallWithDirection(Vector2Int gridPosition, Direction direction, GameObject g, EntityID id)
     {
         if (TryGetChunk(gridPosition, out Chunk chunk, out Vector2Int localPos))
         {
@@ -171,7 +174,7 @@ public class GridSystem : MonoBehaviour
         }
     }
 
-    public void SetWallData(Vector2Int gridPosition, Direction direction, BuildID id)
+    public void SetWallData(Vector2Int gridPosition, Direction direction, EntityID id)
     {
         if (TryGetChunk(gridPosition, out Chunk chunk, out Vector2Int localPos))
         {
@@ -179,7 +182,7 @@ public class GridSystem : MonoBehaviour
         }
     }
 
-    public void SetFloorData(Vector2Int gridPosition, BuildID id)
+    public void SetFloorData(Vector2Int gridPosition, EntityID id)
     {
         if (TryGetChunk(gridPosition, out Chunk chunk, out Vector2Int localPos))
         {
@@ -204,7 +207,7 @@ public class GridSystem : MonoBehaviour
             }
         }
     }
-    
+
     public Vector3 GetWorldPositionFromChunk(Vector2Int chunkCoord, Vector2Int localPos)
     {
         if (chunkLookup.TryGetValue(chunkCoord, out int index) && index >= 0 && index < chunks.Count)
@@ -214,6 +217,7 @@ public class GridSystem : MonoBehaviour
                 new Vector2Int(chunkCoord.x * chunkSizeX + localPos.x, chunkCoord.y * chunkSizeY + localPos.y),
                 gridOrigin, cellSize);
         }
+
         return Vector3.zero;
     }
 
@@ -243,11 +247,11 @@ public class GridSystem : MonoBehaviour
     {
         return GridSystemExtension.IsValidGridPosition(gridPosition, gridWidth, gridHeight);
     }
+
     public Vector3 GetGridCenterPosition(Vector2Int gridPosition)
     {
         return GridSystemExtension.GetGridCenterPosition(gridPosition, gridOrigin, cellSize);
     }
-    
 
     #endregion
 
@@ -413,11 +417,11 @@ public class GridSystem : MonoBehaviour
             for (int y = 0; y < chunkSizeY; y++)
             {
                 Vector2Int localPos = new Vector2Int(x, y);
-                Floor floor = chunk.GetCell(localPos);
+                Entity floor = chunk.GetCell(localPos);
 
-                if (floor != null && floor.buildID != BuildID.None)
+                if (floor != null && floor.entityID != EntityID.None)
                 {
-                    RecreateFloor(chunk, localPos, floor);
+                    RecreateEntity(chunk, localPos, floor);
                 }
             }
         }
@@ -444,51 +448,80 @@ public class GridSystem : MonoBehaviour
         }
     }
 
-    private void RecreateFloor(Chunk chunk, Vector2Int localPos, Floor floor)
+    private void RecreateEntity(Chunk chunk, Vector2Int localPos, Entity entity)
     {
         Vector2Int globalPos = chunk.chunkCoord * new Vector2Int(chunkSizeX, chunkSizeY) + localPos;
         Vector3 worldPos = GridToWorldPosition(globalPos);
 
         // Create floor object
         GameObject floorObj = Instantiate(
-            GameManager.Instance.GetBuildingDataByID(floor.buildID).prefab,
+            GameManager.Instance.GetBuildingDataByID(entity.entityID).prefab,
             worldPos,
             Quaternion.identity);
 
-        FloorBehaviour floorBehaviour = EditBuildingFactory.AddEditScripts(floor.buildID, floorObj) as FloorBehaviour;
-        floorBehaviour.SetBuildID(floor.buildID);
+        FloorBehaviour floorBehaviour = EditBuildingFactory.AddEditScripts(entity.entityID, floorObj) as FloorBehaviour;
+        floorBehaviour.SetBuildID(entity.entityID);
         floorObj.transform.SetParent(chunk.floorsParent.transform);
 
         int floorIndex = localPos.x + localPos.y * chunkSizeX;
-        floorBehaviour.Init(floorIndex, floor.buildID, globalPos);
+        floorBehaviour.Init(floorIndex, entity.entityID, globalPos);
 
         // Create walls and doors
-        RecreateWallsAndDoors(chunk, floor, floorIndex, globalPos, worldPos);
+        RecreateWallsAndDoors(chunk, entity, floorIndex, globalPos, worldPos);
     }
 
-    private void RecreateWallsAndDoors(Chunk chunk, Floor floor, int floorIndex, Vector2Int globalPos, Vector3 worldPos)
+    private void RecreateWallsAndDoors(Chunk chunk, Entity entity, int floorIndex, Vector2Int globalPos,
+        Vector3 worldPos)
     {
-        for (int i = 0; i < floor.buildingWithDirection.Length; i++)
+        // for (int i = 0; i < floor.buildingWithDirection.Length; i++)
+        // {
+        //     BuildingWithDirection building = floor.buildingWithDirection[i];
+        //     if (building.ID == EntityID.None) continue;
+        //
+        //     Direction direction = (Direction)(1 << i);
+        //     Vector3 offset = CalculateOffsetAndRotate(direction, out float rotate);
+        //
+        //     switch (building.ID)
+        //     {
+        //         case EntityID.Wall:
+        //             CreateWall(chunk, building.ID, i, floorIndex, globalPos, worldPos, offset, rotate);
+        //             break;
+        //         case EntityID.Door:
+        //             CreateDoor(chunk, building.ID, i, floorIndex, globalPos, worldPos, offset, rotate);
+        //             break;
+        //     }
+        // }
+        switch (entity.entityID)
         {
-            BuildingWithDirection building = floor.buildingWithDirection[i];
-            if (building.ID == BuildID.None) continue;
+            case EntityID.Floor:
+                Floor floor = entity as Floor;
+                if (floor == null) return;
 
-            Direction direction = (Direction)(1 << i);
-            Vector3 offset = CalculateOffsetAndRotate(direction, out float rotate);
+                for (int i = 0; i < floor.buildingWithDirection.Length; i++)
+                {
+                    BuildingWithDirection building = floor.buildingWithDirection[i];
+                    if (building.ID == EntityID.None) continue;
 
-            switch (building.ID)
-            {
-                case BuildID.Wall:
-                    CreateWall(chunk, building.ID, i, floorIndex, globalPos, worldPos, offset, rotate);
-                    break;
-                case BuildID.Door:
-                    CreateDoor(chunk, building.ID, i, floorIndex, globalPos, worldPos, offset, rotate);
-                    break;
-            }
+                    Direction direction = (Direction)(1 << i);
+                    Vector3 offset = CalculateOffsetAndRotate(direction, out float rotate);
+
+                    switch (building.ID)
+                    {
+                        case EntityID.Wall:
+                            Debug.Log($"Creating wall at {globalPos} with direction {direction}");
+                            CreateWall(chunk, building.ID, i, floorIndex, globalPos, worldPos, offset, rotate);
+                            break;
+                        case EntityID.Door:
+                            CreateDoor(chunk, building.ID, i, floorIndex, globalPos, worldPos, offset, rotate);
+                            break;
+                    }
+                }
+
+                break;
         }
     }
 
-    private void CreateWall(Chunk chunk, BuildID buildID, int directionIndex, int floorIndex,
+    private void CreateWall(Chunk chunk, EntityID buildID, int directionIndex, int floorIndex,
         Vector2Int globalPos, Vector3 worldPos, Vector3 offset, float rotation)
     {
         GameObject wallObj = Instantiate(
@@ -502,7 +535,7 @@ public class GridSystem : MonoBehaviour
         wallBehaviour.Init(directionIndex, floorIndex, buildID, globalPos);
     }
 
-    private void CreateDoor(Chunk chunk, BuildID buildID, int directionIndex, int floorIndex,
+    private void CreateDoor(Chunk chunk, EntityID buildID, int directionIndex, int floorIndex,
         Vector2Int globalPos, Vector3 worldPos, Vector3 offset, float rotation)
     {
         GameObject doorObj = Instantiate(
@@ -522,10 +555,7 @@ public class GridSystem : MonoBehaviour
 
     public void LoadWorldData(WorldData worldData)
     {
-        if (worldData == null) return;
-
         ClearChunks();
-
         // Apply saved data
         foreach (var chunkData in worldData.chunkData)
         {
@@ -534,18 +564,49 @@ public class GridSystem : MonoBehaviour
             {
                 Chunk chunk = chunks[chunkIndex];
 
-                foreach (var floorData in chunkData.floors)
+                // foreach (var enityData in chunkData.entities)
+                // {
+                //     chunk.chunkData[enityData.localPos.x, enityData.localPos.y].entityID = enityData.entityID;
+                //
+                //     if (enityData.entityID == EntityID.Floor)
+                //     {
+                //         
+                //         foreach (var wallData in enityData.walls)
+                //         {
+                //             // Direction direction = (Direction)(1 << wallData.directionIndex);
+                //             // chunk.chunkData[enityData.localPos.x, enityData.localPos.y]
+                //             //     .SetWall(direction, wallData.buildID);
+                //         }
+                //     }
+                //     // Set floor data
+                //     
+                // }
+                foreach (var enityData in chunkData.entities)
                 {
-                    // Set floor data
-                    chunk.chunkData[floorData.localPos.x, floorData.localPos.y].buildID = floorData.buildID;
-
-                    // Set wall data
-                    foreach (var wallData in floorData.walls)
+                    Vector2Int localPos = new Vector2Int(enityData.localPos.x, enityData.localPos.y);
+    
+                    // Create the appropriate entity based on type
+                    switch (enityData.entityID)
                     {
-                        Direction direction = (Direction)(1 << wallData.directionIndex);
-                        chunk.chunkData[floorData.localPos.x, floorData.localPos.y]
-                            .SetWall(direction, wallData.buildID);
+                        case EntityID.Floor:
+                            Floor floor = new Floor(enityData.entityID);
+            
+                            // Add walls to the floor
+                            foreach (var wallData in enityData.walls)
+                            {
+                                Direction direction = (Direction)(1 << wallData.directionIndex);
+                                Debug.Log($"Setting wall at {localPos} with direction {direction} and ID {wallData.entityID}");
+                                floor.SetWall(direction, wallData.entityID);
+                            }
+            
+                            // Set the cell with the fully constructed floor object
+                            chunk.chunkData[localPos.x, localPos.y] = floor;
+                            break;
+                        default:
+                            break;
                     }
+    
+                    chunk.NeedRebuild = true;
                 }
 
                 chunk.NeedRebuild = true;

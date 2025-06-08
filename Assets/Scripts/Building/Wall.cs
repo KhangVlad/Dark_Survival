@@ -7,7 +7,7 @@ public class Wall : Building
 {
     public Wall()
     {
-        this.buildID = BuildID.Wall;
+        this.entityID = EntityID.Wall;
     }
 }   
 

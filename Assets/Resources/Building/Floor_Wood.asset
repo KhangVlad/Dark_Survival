@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0597a8c582f846f9b5d6683b9c736f33, type: 3}
   m_Name: Floor_Wood
   m_EditorClassIdentifier: 
-  buildID: 1
+  entityID: 101
   objectName: Floor
   prefab: {fileID: 8076553634286879440, guid: 2dbd14ea29711499c94a35d4e1e3747b, type: 3}
   gridSize: {x: 1, y: 1}

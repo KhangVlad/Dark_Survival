@@ -34,8 +34,6 @@ public class GameResourceManager : MonoBehaviour
             return;
         }
 
-        Debug.Log($"Attempting to spawn resources on {GridSystem.Instance.chunks.Count} chunks");
-
         foreach (var chunk in GridSystem.Instance.chunks)
         {
             if (chunk != null)

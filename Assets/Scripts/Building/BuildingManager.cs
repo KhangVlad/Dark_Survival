@@ -5,6 +5,7 @@ using UnityEngine;
 public class BuildingManager : MonoBehaviour
 {
     #region Singleton
+
     public static BuildingManager Instance { get; private set; }
 
     private void Awake()
@@ -14,10 +15,10 @@ public class BuildingManager : MonoBehaviour
         else
             Destroy(gameObject);
     }
+
     #endregion
 
-    [Header("Building")] 
-    public BuildDataSO currentSelectedObject;
+    [Header("Building")] public BuildDataSO currentSelectedObject;
     public LayerMask groundLayer = 1;
     public LayerMask buildingLayerMask = 1;
     [SerializeField] private GameObject gridGameObject;
@@ -77,11 +78,9 @@ public class BuildingManager : MonoBehaviour
                 if (hit.collider.TryGetComponent(out BuildBehaviour editBuilding))
                 {
                     editBuilding.DeleteBuilding();
-                    Debug.Log("Clicked on building: " + editBuilding.name);
                 }
                 else
                 {
-                    Debug.Log("Clicked on non-building object: " + hit.collider.name);
                 }
             }
         }
@@ -100,7 +99,7 @@ public class BuildingManager : MonoBehaviour
             {
                 if (IsDraggingWall() || IsDraggingDoor())
                 {
-                    HandleWallOrDoorDragging(currentSelectedObject.buildID);
+                    HandleWallOrDoorDragging();
                 }
                 else if (IsDraggingFloor())
                 {
@@ -123,7 +122,6 @@ public class BuildingManager : MonoBehaviour
         {
             if (hit.collider.TryGetComponent(out BuildBehaviour editBuilding))
             {
-                Debug.Log("Clicked on building: " + editBuilding.name);
                 editBuilding.InteractWithBuilding();
             }
         }
@@ -136,14 +134,14 @@ public class BuildingManager : MonoBehaviour
         SetGridMaterialValue(1);
         currentSelectedObject = buildData;
 
-        switch (buildData.buildID)
+        switch (buildData.entityID)
         {
-            case BuildID.Floor:
+            case EntityID.Floor:
                 HandleCreateFloorPreview();
                 break;
-            case BuildID.Wall:
-            case BuildID.Door:
-                HandleCreateWallLikePreview(buildData.buildID);
+            case EntityID.Wall:
+            case EntityID.Door:
+                HandleCreateWallLikePreview();
                 break;
         }
 
@@ -169,7 +167,7 @@ public class BuildingManager : MonoBehaviour
         }
     }
 
-    private void HandleWallOrDoorDragging(BuildID buildID)
+    private void HandleWallOrDoorDragging()
     {
         Vector3 mousePos = Input.mousePosition;
         Ray ray = playerCamera.ScreenPointToRay(mousePos);
@@ -178,55 +176,27 @@ public class BuildingManager : MonoBehaviour
             return;
 
         Vector2Int gridPosition = GridSystem.Instance.WorldToGridPosition(hit.point);
-
-        // Check if grid position is valid
-        if (!GridSystem.Instance.IsValidGridPosition(gridPosition))
-            return;
-
-        // Only continue if there is a floor at this position
         if (!GridSystem.Instance.IsCellOccupied(gridPosition))
             return;
-
-        // Get floor at this position
         currentHitFloor = GetFloorAtGridPosition(gridPosition);
-        if (currentHitFloor == null)
-            return;
-
+        if (currentHitFloor == null) return;
         currentPreviewPosition = gridPosition;
-
-        // Calculate which wall direction based on hit point
         Direction direction = GridSystemExtension.CalculateWallDirection(
             hit.point,
             GridSystem.Instance.GetGridCenterPosition(gridPosition)
         );
-
         Floor f = GetFloorConnectWith(currentHitFloor, direction);
-        if (currentHitFloor.IsDirectionCovered(direction)) return;
-        
-        // if (f != null && f.IsHaveWallAtDirection(BuildingExtension.GetOppositeWallDirection(direction))) return;
-        //
-        // previousDirection = direction;
-        // UpdatePreviewPositionAndRotation(direction, _previewBuilding);
-        //
-        // // Update UI position
-        // if (uiBuildingConfirm != null && uiBuildingConfirm.gameObject.activeSelf)
-        // {
-        //     uiBuildingConfirm.UpdatePosition(GridSystem.Instance.GridToWorldPosition(gridPosition));
-        // }
-        
-        //f null is fine 
-        previousDirection = direction;
-        if (f != null)
+        if (currentHitFloor.IsDirectionCovered(direction))
         {
-            
-            if (f.IsHaveWallAtDirection(BuildingExtension.GetOppositeWallDirection(direction)))
-            {
-                return;
-            }
+            return;
         }
-        
-        UpdatePreviewPositionAndRotation(direction, _previewBuilding);
-        uiBuildingConfirm.UpdatePosition(GridSystem.Instance.GridToWorldPosition(gridPosition));
+        else
+        {
+            if (f != null && f.IsDirectionCovered(BuildingExtension.GetOppositeWallDirection(direction))) return;
+            previousDirection = direction;
+            UpdatePreviewPositionAndRotation(direction, _previewBuilding, gridPosition);
+            uiBuildingConfirm.UpdatePosition(GridSystem.Instance.GridToWorldPosition(gridPosition));
+        }
     }
 
     private Floor GetFloorAtGridPosition(Vector2Int gridPosition)
@@ -236,7 +206,7 @@ public class BuildingManager : MonoBehaviour
             return null;
         }
 
-        return GridSystem.Instance.GetFloorAt(gridPosition, out var index);
+        return GridSystem.Instance.GetEntityById<Floor>(gridPosition, out _);
     }
 
     private void HandleFloorDragging()
@@ -275,25 +245,21 @@ public class BuildingManager : MonoBehaviour
         }
     }
 
-    private void HandleCreateWallLikePreview(BuildID buildID)
+    private void HandleCreateWallLikePreview()
     {
         Floor validFloor = FindValidFloor(out var dir);
-
         if (validFloor == null)
         {
             CancelBuilding();
+            return;
         }
-        else
-        {
-            currentHitFloor = validFloor;
-            Vector2Int gridPosition = validFloor.gridPos;
-            currentPreviewPosition = gridPosition;
-            _previewBuilding = Instantiate(currentSelectedObject.prefab);
-            previousDirection = dir;
-            UpdatePreviewPositionAndRotation(previousDirection, _previewBuilding);
-            uiBuildingConfirm.UpdatePosition(GridSystem.Instance.GridToWorldPosition(gridPosition));
-            uiBuildingConfirm.ActiveCanvas(true);
-        }
+
+        currentHitFloor = validFloor;
+        currentPreviewPosition = validFloor.gridPos;
+        _previewBuilding = Instantiate(currentSelectedObject.prefab);
+        UpdatePreviewPositionAndRotation(dir, _previewBuilding, validFloor.gridPos);
+        uiBuildingConfirm.UpdatePosition(GridSystem.Instance.GridToWorldPosition(validFloor.gridPos));
+        uiBuildingConfirm.ActiveCanvas(true);
     }
 
     #endregion
@@ -309,14 +275,14 @@ public class BuildingManager : MonoBehaviour
 
             if (success)
             {
-                switch (currentSelectedObject.buildID)
+                switch (currentSelectedObject.entityID)
                 {
-                    case BuildID.Floor:
+                    case EntityID.Floor:
                         HandleCreateFloorPreview();
                         break;
-                    case BuildID.Wall:
-                    case BuildID.Door:
-                        HandleCreateWallLikePreview(currentSelectedObject.buildID);
+                    case EntityID.Wall:
+                    case EntityID.Door:
+                        HandleCreateWallLikePreview();
                         break;
                 }
             }
@@ -353,47 +319,48 @@ public class BuildingManager : MonoBehaviour
         if (!GridSystem.Instance.IsValidGridPosition(gridPosition))
             return false;
 
-        switch (currentSelectedObject.buildID)
+        switch (currentSelectedObject.entityID)
         {
-            case BuildID.Floor:
+            case EntityID.Floor:
                 if (!GridSystem.Instance.CanPlaceObject(gridPosition))
                     return false;
                 GridSystem.Instance.MarkGridCells(gridPosition, currentSelectedObject.gridSize, true);
                 PlaceFloor(gridPosition);
                 break;
-            case BuildID.Wall:
-            case BuildID.Door:
+            case EntityID.Wall:
+            case EntityID.Door:
                 Direction direction = GridSystemExtension.CalculateWallDirection(
                     _previewBuilding.transform.position,
                     GridSystem.Instance.GetGridCenterPosition(currentPreviewPosition)
                 );
-                PlaceWallLikeObject(gridPosition, direction, currentSelectedObject.buildID);
+                PlaceWallLikeObject(gridPosition, direction, currentSelectedObject.entityID);
                 break;
         }
 
         return true;
     }
 
-    private void PlaceWallLikeObject(Vector2Int gridPosition, Direction direction, BuildID buildID)
+    private void PlaceWallLikeObject(Vector2Int gridPosition, Direction direction, EntityID buildID)
     {
         if (currentHitFloor == null) return;
-        
-        Floor floor = GridSystem.Instance.GetFloorAt(gridPosition, out var index);
+
+        Floor floor = GridSystem.Instance.GetEntityById<Floor>(gridPosition, out var index);
+
         if (floor.IsDirectionCovered(direction)) return;
-        
+
         Floor adjacentFloor = GetFloorConnectWith(floor, direction);
         Direction oppositeDirection = BuildingExtension.GetOppositeWallDirection(direction);
-        if (adjacentFloor != null && adjacentFloor.IsHaveWallAtDirection(oppositeDirection)) return;
-        
+        if (adjacentFloor != null && adjacentFloor.IsDirectionCovered(oppositeDirection)) return;
+
         Vector3 objectPosition = GridSystem.Instance.GridToWorldPosition(gridPosition);
         GameObject newObject = Instantiate(currentSelectedObject.prefab, objectPosition, Quaternion.identity);
-        UpdatePreviewPositionAndRotation(direction, newObject);
-        
+        UpdatePreviewPositionAndRotation(direction, newObject, gridPosition);
+
         GridSystem.Instance.SetWallWithDirection(gridPosition, direction, newObject, buildID);
-        
-        if (buildID == BuildID.Door)
+
+        if (buildID == EntityID.Door)
         {
-            DoorBehaviour door = EditBuildingFactory.AddEditScripts(BuildID.Door, newObject) as DoorBehaviour;
+            DoorBehaviour door = EditBuildingFactory.AddEditScripts(EntityID.Door, newObject) as DoorBehaviour;
             door.Init(BuildingExtension.GetWallDirectionIndex(direction), index, buildID, gridPosition);
         }
     }
@@ -402,10 +369,9 @@ public class BuildingManager : MonoBehaviour
     {
         Vector3 worldPosition = GridSystem.Instance.GridToWorldPosition(gridPosition);
         GameObject g = Instantiate(currentSelectedObject.prefab, worldPosition, Quaternion.identity);
-        Floor f = new Floor(BuildID.Floor);
+        Floor f = new Floor(EntityID.Floor);
         f.gridPos = gridPosition;
-
-        GridSystem.Instance.SetFloorAt(gridPosition, f, g);
+        GridSystem.Instance.SetCell(gridPosition, f, g);
     }
 
     #endregion
@@ -414,17 +380,17 @@ public class BuildingManager : MonoBehaviour
 
     private bool IsDraggingWall()
     {
-        return isDragging && currentSelectedObject.buildID == BuildID.Wall;
+        return isDragging && currentSelectedObject.entityID == EntityID.Wall;
     }
 
     private bool IsDraggingFloor()
     {
-        return isDragging && currentSelectedObject.buildID == BuildID.Floor;
+        return isDragging && currentSelectedObject.entityID == EntityID.Floor;
     }
 
     private bool IsDraggingDoor()
     {
-        return isDragging && currentSelectedObject.buildID == BuildID.Door;
+        return isDragging && currentSelectedObject.entityID == EntityID.Door;
     }
 
     private void SetGridMaterialValue(float value)
@@ -437,6 +403,41 @@ public class BuildingManager : MonoBehaviour
         }
     }
 
+    // private Floor FindValidFloor(out Direction validDir)
+    // {
+    //     validDir = Direction.None;
+    //
+    //     for (int x = 0; x < GridSystem.Instance.GridWidth; x++)
+    //     {
+    //         for (int y = 0; y < GridSystem.Instance.GridHeight; y++)
+    //         {
+    //             Vector2Int pos = new Vector2Int(x, y);
+    //             Floor floor = GridSystem.Instance.GetEntityById<Floor>(pos, out var index);
+    //             if (floor.entityID != EntityID.None && floor.IsWallAvailable())
+    //             {
+    //                 foreach (Direction dir in Enum.GetValues(typeof(Direction)))
+    //                 {
+    //                     if (dir == Direction.None || dir == Direction.All)
+    //                         continue;
+    //                     if (floor.IsDirectionCovered(dir))
+    //                         continue;
+    //                     Floor adjacentFloor = GetFloorConnectWith(floor, dir);
+    //                     Direction oppositeDir = BuildingExtension.GetOppositeWallDirection(dir);
+    //                     if (adjacentFloor == null || !adjacentFloor.IsHaveWallAtDirection(oppositeDir))
+    //                     {
+    //                         validDir = dir;
+    //                         return floor;
+    //                     }
+    //                 }
+    //             }
+    //
+    //             return null;
+    //         }
+    //     }
+    //
+    //     return null;
+    // }
+
     private Floor FindValidFloor(out Direction validDir)
     {
         validDir = Direction.None;
@@ -446,23 +447,31 @@ public class BuildingManager : MonoBehaviour
             for (int y = 0; y < GridSystem.Instance.GridHeight; y++)
             {
                 Vector2Int pos = new Vector2Int(x, y);
-                Floor floor = GridSystem.Instance.GetFloorAt(pos, out var index);
+                Floor floor = GridSystem.Instance.GetEntityById<Floor>(pos, out _);
+                if (floor == null)
+                    continue;
 
-                if (floor.buildID != BuildID.None && floor.IsWallAvailable())
+                if (floor.IsWallAvailable())
                 {
-                    // Check all available directions for this floor
-                    foreach (Direction dir in Enum.GetValues(typeof(Direction)))
+                    // Check all directions explicitly rather than relying on GetFirstAvailableDirection
+                    Direction[] allDirections = { Direction.Top, Direction.Right, Direction.Bot, Direction.Left };
+                
+                    foreach (Direction dir in allDirections)
                     {
-                        if (dir == Direction.None || dir == Direction.All)
+                        // Skip if this direction already has a wall
+                        int dirIndex = BuildingExtension.GetWallDirectionIndex(dir);
+                        if (floor.buildingWithDirection[dirIndex].ID != EntityID.None)
                             continue;
-                        if (floor.IsDirectionCovered(dir))
-                            continue;
+
+                        // Check if adjacent floor exists and has a wall in the opposite direction
                         Floor adjacentFloor = GetFloorConnectWith(floor, dir);
                         Direction oppositeDir = BuildingExtension.GetOppositeWallDirection(dir);
-
-                        if (adjacentFloor == null || !adjacentFloor.IsHaveWallAtDirection(oppositeDir))
+                    
+                        if (adjacentFloor == null || !adjacentFloor.IsDirectionCovered(oppositeDir))
                         {
+                            // This is a valid direction
                             validDir = dir;
+                            floor.gridPos = pos; // Ensure gridPos is set correctly
                             return floor;
                         }
                     }
@@ -470,16 +479,17 @@ public class BuildingManager : MonoBehaviour
             }
         }
 
+        Debug.Log("No valid floor found for wall placement");
         return null;
     }
 
     // Cache frequently used vector allocations
     private static readonly Vector2Int[] DirectionOffsets =
     {
-        new Vector2Int(0, 1),  // Top
-        new Vector2Int(1, 0),  // Right
+        new Vector2Int(0, 1), // Top
+        new Vector2Int(1, 0), // Right
         new Vector2Int(0, -1), // Bot
-        new Vector2Int(-1, 0)  // Left
+        new Vector2Int(-1, 0) // Left
     };
 
     private Floor GetFloorConnectWith(Floor f, Direction d)
@@ -505,7 +515,7 @@ public class BuildingManager : MonoBehaviour
             return null;
         }
 
-        return GridSystem.Instance.GetFloorAt(checkPos, out _);
+        return GridSystem.Instance.GetEntityById<Floor>(checkPos, out _);
     }
 
     private Floor FindClosestAvailableFloorFromCharacter8Dir(out Vector2Int randomFreePos)
@@ -520,7 +530,7 @@ public class BuildingManager : MonoBehaviour
             for (int y = 0; y < GridSystem.Instance.GridHeight; y++)
             {
                 Vector2Int pos = new Vector2Int(x, y);
-                Floor floor = GridSystem.Instance.GetFloorAt(pos, out _);
+                Floor floor = GridSystem.Instance.GetEntityById<Floor>(pos, out _);
                 if (floor != null)
                 {
                     availableFloors.Add(floor);
@@ -536,7 +546,7 @@ public class BuildingManager : MonoBehaviour
             float distance = Vector3.Distance(playerPos, GridSystem.Instance.GridPosToWorldPosition(floor.gridPos));
             if (distance < closestDistance)
             {
-                Vector2Int gridPosition = 
+                Vector2Int gridPosition =
                     GridSystem.Instance.WorldToGridPosition(GridSystem.Instance.GridPosToWorldPosition(floor.gridPos));
 
                 if (HasFreeAdjacent8Position(gridPosition, out Vector2Int direction))
@@ -622,10 +632,10 @@ public class BuildingManager : MonoBehaviour
         }
     }
 
-    private void UpdatePreviewPositionAndRotation(Direction dir, GameObject preview)
+    private void UpdatePreviewPositionAndRotation(Direction dir, GameObject preview, Vector2Int pos)
     {
         Vector3 offset = CalculateOffsetAndRotate(dir, out float rotation);
-        preview.transform.position = GridSystem.Instance.GridToWorldPosition(currentPreviewPosition) + offset;
+        preview.transform.position = GridSystem.Instance.GridToWorldPosition(pos) + offset;
         preview.transform.rotation = Quaternion.Euler(0, rotation, 0);
     }
 

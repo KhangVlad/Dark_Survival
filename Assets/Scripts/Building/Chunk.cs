@@ -1,14 +1,15 @@
 using System;
 using UnityEngine;
 
+
+[Serializable]
 public class Chunk
 {
     public Vector2Int chunkCoord;
-    public Floor[,] chunkData;
-    public Floor[] floors;
-    public GameObject floorsParent;
-    public GameObject wallsParents;
-    public GameObject doorsParent; //no need combine mesh, just for edit
+    public Entity[,] chunkData;
+    [HideInInspector] public GameObject floorsParent;
+    [HideInInspector] public GameObject wallsParents;
+    [HideInInspector] public GameObject doorsParent;
     public bool NeedRebuild = false;
 
     public Chunk(Vector2Int coord, int sizeX, int sizeY)
@@ -17,71 +18,90 @@ public class Chunk
         wallsParents = new GameObject($"Wall_{coord.x}_{coord.y}");
         doorsParent = new GameObject($"Door_{coord.x}_{coord.y}");
         chunkCoord = coord;
-        chunkData = new Floor[sizeX, sizeY];
-
+        chunkData = new Entity[sizeX, sizeY];
         for (int x = 0; x < sizeX; x++)
         {
             for (int y = 0; y < sizeY; y++)
             {
-                chunkData[x, y] = new Floor(BuildID.None);
-                chunkData[x, y].gridPos = new Vector2Int(x, y);
+                chunkData[x, y] = new EmtyEntity(new Vector2Int(x, y));
+                // ((Floor)chunkData[x, y]).gridPos = new Vector2Int(x, y);
             }
         }
 
-        floors = new Floor[sizeX * sizeY];
     }
 
-    public Floor GetCell(Vector2Int localPos)
+    public Entity GetCell(Vector2Int localPos)
     {
         return chunkData[localPos.x, localPos.y];
     }
 
-    public void SetCell(Vector2Int localPos, Floor floor, GameObject g, int chunkWidth)
+    public void SetCell(Vector2Int localPos, Entity e, GameObject g, int chunkWidth)
     {
-        chunkData[localPos.x, localPos.y] = floor;
-        int index = localPos.x + localPos.y * chunkWidth;
-        floors[index] = floor;
+        chunkData[localPos.x, localPos.y] = e;
+        if (e is Floor f)
+        {
+            f.gridPos = localPos;
+        }
+
         g.transform.SetParent(floorsParent.transform);
         NeedRebuild = true;
     }
 
+    public void SetWallWithDirection(Vector2Int localPos, Direction d, GameObject g, EntityID id)
+    {
+        Entity floor = GetCell(localPos);
+        if (floor is Floor f)
+        {
+            f.SetWall(d, id);
+            switch (id)
+            {
+                case EntityID.Wall:
+                    g.transform.SetParent(wallsParents.transform);
+                    break;
+                case EntityID.Door:
+                    g.transform.SetParent(doorsParent.transform);
+                    break;
+            }
+
+            NeedRebuild = true;
+        }
+        else
+        {
+            Debug.LogWarning("Cannot set wall on a non-floor entity.");
+        }
+    }
+
+    public void SetWallData(Vector2Int localPos, Direction d, EntityID id)
+    {
+        Entity floor = GetCell(localPos);
+        if (floor is Floor f)
+        {
+            f.SetWall(d, id);
+            NeedRebuild = true;
+        }
+        else
+        {
+            Debug.LogWarning("Cannot set wall on a non-floor entity.");
+        }
+    }
+
+    public void SetFloorData(Vector2Int localPos, EntityID id)
+    {
+        Entity floor = GetCell(localPos);
+        if (floor is Floor f)
+        {
+            f.entityID = id;
+            f.buildingWithDirection = null;
+            NeedRebuild = true;
+        }
+        else
+        {
+            Debug.LogWarning("Cannot set floor data on a non-floor entity.");
+        }
+    }
+
     public bool IsCellOccupied(Vector2Int localPos)
     {
-        return chunkData[localPos.x, localPos.y].buildID != BuildID.None;
-    }
-
-    public void SetWallWithDirection(Vector2Int localPos, Direction d, GameObject g, BuildID id)
-    {
-        chunkData[localPos.x, localPos.y].SetWall(d, id);
-        switch (id)
-        {
-            case BuildID.Wall:
-                g.transform.SetParent(wallsParents.transform);
-                break;
-            case BuildID.Door:
-                g.transform.SetParent(doorsParent.transform);
-                break;
-        }
-
-        NeedRebuild = true;
-    }
-
-    public void SetWallData(Vector2Int localPos, Direction d, BuildID id)
-    {
-        if (chunkData[localPos.x, localPos.y] == null)
-        {
-            Debug.LogWarning("Cannot set wall on an empty cell.");
-            return;
-        }
-
-        chunkData[localPos.x, localPos.y].SetWall(d, id);
-        NeedRebuild = true;
-    }
-
-    public void SetFloorData(Vector2Int localPos, BuildID id)
-    {
-        chunkData[localPos.x, localPos.y].buildID = id;
-        chunkData[localPos.x, localPos.y].buildingWithDirection = null;
-        NeedRebuild = true;
+        return chunkData[localPos.x, localPos.y].entityID != EntityID.None;
     }
 }

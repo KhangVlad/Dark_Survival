@@ -2,19 +2,19 @@ using UnityEngine;
 
 public static class EditBuildingFactory
 {
-    public static BuildBehaviour AddEditScripts(BuildID id, GameObject g)
+    public static BuildBehaviour AddEditScripts(EntityID id, GameObject g)
     {
         BuildBehaviour buildBehaviour = null;
 
         switch (id)
         {
-            case BuildID.Floor:
+            case EntityID.Floor:
                 buildBehaviour = g.AddComponent<FloorBehaviour>();
                 break;
-            case BuildID.Wall:
+            case EntityID.Wall:
                 buildBehaviour = g.AddComponent<WallBehaviour>();
                 break;
-            case BuildID.Door:
+            case EntityID.Door:
                 buildBehaviour = g.AddComponent<DoorBehaviour>();
                 break;
         }

@@ -2,6 +2,7 @@ using System;
 using UnityEngine;
     public static class BuildingExtension
     {
+        public const int BuildingStartIndex = 101;
         public static int GetWallDirectionIndex(Direction direction)
         {
             return direction switch
@@ -38,4 +39,32 @@ using UnityEngine;
                 _ => Direction.None // Invalid index
             };
         }
+        
+        
+        
+        //>101 is building entity
+        
+        
+        public static bool IsEntityBuilding(this EntityID entityID)
+        {
+            return (int)entityID >= BuildingStartIndex;
+        }
+        
+        
+    }
+
+
+    public enum EntityID
+    {
+        None = 0,
+        Log = 1,
+        Bush = 2,
+        Stone = 3,
+        SpineTree = 4,
+    
+    
+        // Add more entity IDs as needed
+        Floor = 101,
+        Wall =102,
+        Door = 103,
     }

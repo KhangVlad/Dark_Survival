@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 public class SaveManager : MonoBehaviour
 {
@@ -53,7 +54,6 @@ public class SaveManager : MonoBehaviour
         UserData userData = UserManager.Instance.userData;
         string json = JsonUtility.ToJson(userData, true);
         string path = Application.persistentDataPath + "/userData.json";
-        Debug.Log("Saving user data to: " + path);
         System.IO.File.WriteAllText(path, json);
     }
 
@@ -69,7 +69,7 @@ public class SaveManager : MonoBehaviour
             ChunkData chunkData = new ChunkData
             {
                 chunkCoord = chunk.chunkCoord,
-                floors = new List<FloorData>()
+                entities = new List<EnityData>()
             };
 
             // Get chunk dimensions
@@ -80,32 +80,43 @@ public class SaveManager : MonoBehaviour
             {
                 for (int y = 0; y < sizeY; y++)
                 {
-                    Floor floor = chunk.chunkData[x, y];
-                    if (floor != null && floor.buildID != BuildID.None)
+                    Entity e = chunk.chunkData[x, y];
+                    if (e != null && e.entityID != EntityID.None)
                     {
-                        FloorData floorData = new FloorData
+                        EnityData enityData = new EnityData
                         {
                             localPos = new Vector2Int(x, y),
-                            buildID = floor.buildID,
+                            entityID = e.entityID,
                             walls = new List<WallData>()
                         };
 
-                        // Save wall data for this floor
-                        for (int i = 0; i < floor.buildingWithDirection.Length; i++)
+                      
+                        if (e is Floor floor && floor.buildingWithDirection != null)
                         {
-                            BuildingWithDirection building = floor.buildingWithDirection[i];
-                            if (building.ID != BuildID.None)
+                            for (int i = 0; i < floor.buildingWithDirection.Length; i++)
                             {
-                                WallData wallData = new WallData
+                                var building = floor.buildingWithDirection[i];
+
+                                if (building != null && building.ID != EntityID.None)
                                 {
-                                    directionIndex = i,
-                                    buildID = building.ID
-                                };
-                                floorData.walls.Add(wallData);
+                                    WallData wallData = new WallData
+                                    {
+                                        directionIndex = i,
+                                        entityID = building.ID
+                                    };
+
+                                    enityData.walls.Add(wallData);
+                                }
                             }
+
+                            // buildingWithDirection processed
                         }
 
-                        chunkData.floors.Add(floorData);
+
+                        // Save wall data for this floor
+
+
+                        chunkData.entities.Add(enityData);
                     }
                 }
             }
@@ -115,7 +126,6 @@ public class SaveManager : MonoBehaviour
 
         string json = JsonUtility.ToJson(worldData, true);
         string path = Application.persistentDataPath + "/worldData.json";
-        Debug.Log("Saving world data to: " + path);
         File.WriteAllText(path, json);
     }
 
@@ -159,14 +169,14 @@ public class WorldData
 public class ChunkData
 {
     public Vector2Int chunkCoord;
-    public List<FloorData> floors = new List<FloorData>();
+   public List<EnityData> entities = new List<EnityData>();
 }
 
 [Serializable]
-public class FloorData
+public class EnityData
 {
     public Vector2Int localPos;
-    public BuildID buildID;
+    public EntityID entityID;
     public List<WallData> walls = new List<WallData>();
 }
 
@@ -174,5 +184,5 @@ public class FloorData
 public class WallData
 {
     public int directionIndex;
-    public BuildID buildID;
+     public EntityID entityID;
 }
