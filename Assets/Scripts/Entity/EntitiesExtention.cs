@@ -10,7 +10,7 @@ public static class EntitiesExtention
                 return new Wall(entityID) as T;
             case EntityID.Door:
                 return new Door(entityID) as T;
-            case EntityID.SpineTree:
+            case EntityID.PineTree:
                 return new ResourceNode(entityID) as T;
             case EntityID.Bush:
                 return new ResourceNode(entityID) as T;

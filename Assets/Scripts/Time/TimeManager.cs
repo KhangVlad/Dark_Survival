@@ -16,7 +16,6 @@ public class TimeManager : MonoBehaviour
         if (Instance == null)
         {
             Instance = this;
-            DontDestroyOnLoad(this); // Optional
         }
         else
         {
@@ -28,6 +27,7 @@ public class TimeManager : MonoBehaviour
     {
         currentTime = GameTime.FromDateTime(DateTime.Now);
     }
+
 
     private void Update()
     {

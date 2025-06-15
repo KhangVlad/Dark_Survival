@@ -12,6 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a9c9d54d56314322bbd1c23458d4db18, type: 3}
   m_Name: ResourceData 1
   m_EditorClassIdentifier: 
-  itemID: 4
-  prefab: {fileID: 4555209999986171637, guid: 25dfc238987cd412dbd6a8da6a76cd86, type: 3}
-  spawnWeight: 0.7
+  ItemID: 4
+  prefab: {fileID: 2421626080951437635, guid: ab256c82dbd5948e7b00e36eb945f409, type: 3}
+  SpawnWeight: 1
+  ItemRecive:
+    itemID: 2
+    amount: 2

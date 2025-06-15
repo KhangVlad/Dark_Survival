@@ -60,7 +60,7 @@ using UnityEngine;
         Log = 1,
         Bush = 2,
         Stone = 3,
-        SpineTree = 4,
+        PineTree = 4,
     
     
         // Add more entity IDs as needed

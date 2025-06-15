@@ -33,6 +33,6 @@ public class UserManager : MonoBehaviour
     private void InitializeUserData()
     {
         userData = new UserData();
-        userData.Inventory.AddItem(ItemID.Log, 100);
+        userData.inventory.AddItem(ItemID.Log, 100);
     }
 }

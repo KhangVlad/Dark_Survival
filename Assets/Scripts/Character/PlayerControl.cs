@@ -9,7 +9,6 @@ using Random = UnityEngine.Random;
 public class PlayerControl : MonoBehaviour
 {
     public static PlayerControl Instance { get; private set; }
-
     private void Awake()
     {
         if (Instance == null)
@@ -22,19 +21,28 @@ public class PlayerControl : MonoBehaviour
         }
     }
 
-    [Space] [Header("Components")] [SerializeField]
+    private void Start()
+    {
+
+    }
+
+    [Space]
+    [Header("Components")]
+    [SerializeField]
     private Animator anim;
 
     [SerializeField] private ThirdPersonController thirdPersonController;
     // [SerializeField] private GameControl gameControl;
 
-    [Space] [Header("Combat")] public Transform target;
+    [Space][Header("Combat")] public Transform target;
     [SerializeField] private Transform attackPos;
 
-    [Tooltip("Offset Stoping Distance")] [SerializeField]
+    [Tooltip("Offset Stoping Distance")]
+    [SerializeField]
     private float quickAttackDeltaDistance;
 
-    [Tooltip("Offset Stoping Distance")] [SerializeField]
+    [Tooltip("Offset Stoping Distance")]
+    [SerializeField]
     private float heavyAttackDeltaDistance;
 
     [SerializeField] private float knockbackForce = 10f;
@@ -45,13 +53,11 @@ public class PlayerControl : MonoBehaviour
     bool isAttacking = false;
     private Vector2 moveInput = Vector2.zero;
 
-    [Space] [Header("Debug")] [SerializeField]
+    [Space]
+    [Header("Debug")]
+    [SerializeField]
     private bool debug;
 
-    // Start is called before the first frame update
-    void Start()
-    {
-    }
 
     // Update is called once per frame
     void Update()
@@ -366,6 +372,11 @@ public class PlayerControl : MonoBehaviour
         lookAtRotation.z = 0;
         transform.DOLocalRotateQuaternion(lookAtRotation, 0.2f);
     }
+    public Vector3 GetCharacterPosition()
+    {
+        return transform.position;
+    }
+
 
     #endregion
 

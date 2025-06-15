@@ -5,4 +5,4 @@ using UnityEngine;
 public class ResourcePoolSO : ScriptableObject
 {
     public List<ResourceDataSO> resources;
-}
+}       

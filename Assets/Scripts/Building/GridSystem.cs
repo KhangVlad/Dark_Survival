@@ -80,7 +80,8 @@ public class GridSystem : MonoBehaviour
 
     #region Properties and Fields
 
-    [Header("Grid Settings")] [SerializeField]
+    [Header("Grid Settings")]
+    [SerializeField]
     private int gridWidth = 50;
 
     public int GridSizeX => gridWidth;
@@ -450,8 +451,6 @@ public class GridSystem : MonoBehaviour
     {
         Vector2Int globalPos = chunk.chunkCoord * new Vector2Int(chunkSizeX, chunkSizeY) + localPos;
         Vector3 worldPos = GridToWorldPosition(globalPos);
-        // If the entity is a building (Floor), create the floor object
-        Debug.Log($"Recreating entity {entity.entityID} at global position {globalPos} (world position: {worldPos})");
         if (entity.entityID.IsEntityBuilding())
         {
             GameObject floorObj = Instantiate(
@@ -476,9 +475,12 @@ public class GridSystem : MonoBehaviour
                 GameResourceManager.Instance.GetResourcePrefabByID(entity.entityID),
                 worldPos + new Vector3(0.5f, 0, 0.5f), // Center the resource in the cell
                 Quaternion.identity);
+            resourceObj.transform.rotation = Quaternion.Euler(0, UnityEngine.Random.Range(0f, 360f), 0);
             resourceObj.transform.SetParent(chunk.resourcesParent.transform);
             ResourceNode resourceNode = new ResourceNode(entity.entityID);
             resourceNode.gridPos = globalPos;
+            ResourceFactory.CreateResourceBehavior(resourceNode, resourceObj);
+            
             chunk.SetCell(localPos, resourceNode, resourceObj);
         }
     }
@@ -548,48 +550,7 @@ public class GridSystem : MonoBehaviour
 
     #region Data Loading and Saving
 
-    // public void LoadWorldData(WorldData worldData)
-    // {
-    //     ClearChunks();
-    //     // Apply saved data
-    //     foreach (var chunkData in worldData.chunkData)
-    //     {
-    //         int chunkIndex = GetChunkIndex(chunkData.chunkCoord);
-    //         if (chunkIndex >= 0 && chunkIndex < chunks.Count)
-    //         {
-    //             Chunk chunk = chunks[chunkIndex];
-    //             foreach (var enityData in chunkData.entities)
-    //             {
-    //                 Vector2Int localPos = new Vector2Int(enityData.localPos.x, enityData.localPos.y);
-    //
-    //                 // Create the appropriate entity based on type
-    //                 switch (enityData.entityID)
-    //                 {
-    //                     case EntityID.Floor:
-    //                         Floor floor = new Floor(enityData.entityID);
-    //
-    //                         // Add walls to the floor
-    //                         foreach (var wallData in enityData.walls)
-    //                         {
-    //                             Direction direction = (Direction)(1 << wallData.directionIndex);
-    //                             floor.SetWall(direction, wallData.entityID);
-    //                         }
-    //                         chunk.chunkData[localPos.x, localPos.y] = floor;
-    //                         break;
-    //                     default:
-    //                         break;
-    //                 }
-    //
-    //                 chunk.NeedRebuild = true;
-    //             }
-    //
-    //             chunk.NeedRebuild = true;
-    //         }
-    //     }
-    //
-    //     RecreateWorld();
-    //     HandleBakeMesh();
-    // }
+
     private void LoadWorldData(WorldData worldData)
     {
         ClearChunks();
@@ -603,32 +564,6 @@ public class GridSystem : MonoBehaviour
                 foreach (var entityData in chunkData.entities)
                 {
                     Vector2Int localPos = new Vector2Int(entityData.localPos.x, entityData.localPos.y);
-                    // switch (entityData.entityID)
-                    // {
-                    //     case EntityID.Floor:
-                    //         Floor floor = new Floor(entityData.entityID);
-                    //         if (entityData.walls != null)
-                    //         {
-                    //             foreach (var wallData in entityData.walls)
-                    //             {
-                    //                 Direction direction = (Direction)(1 << wallData.directionIndex);
-                    //                 floor.SetWall(direction, wallData.entityID);
-                    //             }
-                    //         }
-                    //         chunk.chunkData[localPos.x, localPos.y] = floor;
-                    //         break;
-                    //     case EntityID.Stone:
-                    //     case EntityID.Log:
-                    //     case EntityID.Bush:
-                    //     case EntityID.SpineTree:
-                    //         ResourceNode resourceNode = new ResourceNode(entityData.entityID);
-                    //         chunk.chunkData[localPos.x, localPos.y] = resourceNode;
-                    //         break;
-                    //     default:
-                    //         // For other entity types that need special handling
-                    //         break;
-                    // }
-
                     if (!entityData.entityID.IsEntityBuilding())
                     {
                         ResourceNode a = EntitiesExtention.CreateEntityByID<ResourceNode>(entityData.entityID);

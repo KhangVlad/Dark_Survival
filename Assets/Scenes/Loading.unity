@@ -962,6 +962,7 @@ MonoBehaviour:
         amount: 0
       - itemID: 0
         amount: 0
+    IsFirstLogin: 1
 --- !u!1 &1450966893
 GameObject:
   m_ObjectHideFlags: 0

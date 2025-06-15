@@ -7,6 +7,7 @@ public class Chunk
 {
     public Vector2Int chunkCoord;
     public Entity[,] chunkData;
+    [HideInInspector] public GameObject chunkParent;
     [HideInInspector] public GameObject floorsParent;
     [HideInInspector] public GameObject wallsParents;
     [HideInInspector] public GameObject doorsParent;
@@ -15,10 +16,22 @@ public class Chunk
 
     public Chunk(Vector2Int coord, int sizeX, int sizeY)
     {
+        // Create parent GameObject for the entire chunk
+        chunkParent = new GameObject($"Chunk_{coord.x}_{coord.y}");
+
+        // Create child GameObjects and set their parent
         floorsParent = new GameObject($"Floor_{coord.x}_{coord.y}");
+        floorsParent.transform.SetParent(chunkParent.transform);
+
         wallsParents = new GameObject($"Wall_{coord.x}_{coord.y}");
+        wallsParents.transform.SetParent(chunkParent.transform);
+
         doorsParent = new GameObject($"Door_{coord.x}_{coord.y}");
+        doorsParent.transform.SetParent(chunkParent.transform);
+
         resourcesParent = new GameObject($"Resource_{coord.x}_{coord.y}");
+        resourcesParent.transform.SetParent(chunkParent.transform);
+
         chunkCoord = coord;
         chunkData = new Entity[sizeX, sizeY];
         for (int x = 0; x < sizeX; x++)
@@ -26,11 +39,10 @@ public class Chunk
             for (int y = 0; y < sizeY; y++)
             {
                 chunkData[x, y] = new EmtyEntity(new Vector2Int(x, y));
-                // ((Floor)chunkData[x, y]).gridPos = new Vector2Int(x, y);
             }
         }
-
     }
+
 
     public Entity GetCell(Vector2Int localPos)
     {
@@ -91,7 +103,7 @@ public class Chunk
             f.SetWall(d, id);
             NeedRebuild = true;
         }
-       
+
     }
 
     public void SetFloorData(Vector2Int localPos, EntityID id)
@@ -103,7 +115,7 @@ public class Chunk
             f.buildingWithDirection = null;
             NeedRebuild = true;
         }
-       
+
     }
 
     public bool IsCellOccupied(Vector2Int localPos)

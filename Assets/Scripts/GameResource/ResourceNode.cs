@@ -1,10 +1,10 @@
 
-    public class ResourceNode : Entity
+
+public class ResourceNode : Entity
+{
+    public ResourceNode(EntityID entityID)
     {
-        
-        public ResourceNode(EntityID entityID)
-        {
-            this.entityID = entityID;
-        }
-            
+        this.entityID = entityID;
     }
+
+}

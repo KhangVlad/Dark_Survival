@@ -21,7 +21,7 @@ public class BuildingManager : MonoBehaviour
     [Header("Building")] public BuildDataSO currentSelectedObject;
     public LayerMask groundLayer = 1;
     public LayerMask buildingLayerMask = 1;
-    [SerializeField] private GameObject gridGameObject;
+    private GameObject gridGameObject;
 
     private GameObject _previewBuilding;
     private Vector2Int currentPreviewPosition;

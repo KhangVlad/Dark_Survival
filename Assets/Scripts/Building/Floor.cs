@@ -14,7 +14,6 @@ public enum Direction
 }
 
 
-[Serializable]
 public class Floor : Building
 {
     public BuildingWithDirection[] buildingWithDirection;
