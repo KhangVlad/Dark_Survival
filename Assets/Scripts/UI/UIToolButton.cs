@@ -46,6 +46,7 @@ public class UIToolButton : MonoBehaviour, IPointerDownHandler, IPointerUpHandle
 
     private void UpdateButtonState(ResourceBehavior target)
     {
+        Debug.Log("Updating button state with target: " + (target != null ? target.name : "null"));
         if (target == null)
         {
             // No target - show default state or hide button

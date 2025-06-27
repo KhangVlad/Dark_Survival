@@ -139,25 +139,25 @@ public class CharacterResourceSensor : MonoBehaviour
     }
 
     // Debug visualization
-    // private void OnDrawGizmos()
-    // {
-    //     if (!showDebugGizmos) return;
+    private void OnDrawGizmos()
+    {
+        if (!showDebugGizmos) return;
 
-    //     Gizmos.color = Color.yellow;
-    //     Gizmos.DrawWireSphere(transform.position, sensorRadius);
+        Gizmos.color = Color.yellow;
+        Gizmos.DrawWireSphere(transform.position, sensorRadius);
 
-    //     if (currentTarget != null)
-    //     {
-    //         Gizmos.color = Color.red;
-    //         Gizmos.DrawLine(transform.position, currentTarget.transform.position);
-    //         Gizmos.DrawWireCube(currentTarget.transform.position, Vector3.one * 0.5f);
+        if (currentTarget != null)
+        {
+            Gizmos.color = Color.red;
+            Gizmos.DrawLine(transform.position, currentTarget.transform.position);
+            Gizmos.DrawWireCube(currentTarget.transform.position, Vector3.one * 0.5f);
 
-    //         // Draw resource info
-    //         if (currentTarget.ResourceNode != null)
-    //         {
-    //             Vector3 labelPos = currentTarget.transform.position + Vector3.up * 2f;
-    //             UnityEditor.Handles.Label(labelPos, currentTarget.ResourceNode.entityID.ToString());
-    //         }
-    //     }
-    // }
+            // Draw resource info
+            if (currentTarget.ResourceNode != null)
+            {
+                Vector3 labelPos = currentTarget.transform.position + Vector3.up * 2f;
+                UnityEditor.Handles.Label(labelPos, currentTarget.ResourceNode.entityID.ToString());
+            }
+        }
+    }
 }
